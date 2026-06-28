@@ -266,7 +266,7 @@ QQ 群
 建议目录结构：
 
 ```text
-communityos/
+bot/
 
 core/
 
@@ -281,8 +281,6 @@ config/
 data/
 
 logs/
-
-docs/
 ```
 
 每个目录职责明确。

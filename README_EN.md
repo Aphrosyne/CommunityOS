@@ -72,28 +72,36 @@ CommunityOS/
 ├── README.md                   # Project overview
 ├── README_EN.md                # English version of this document
 ├── LICENSE
+├── .gitignore
 │
-├── governance/                 # Governance module
+├── docs/                       # All design documents
+│   ├── philosophy.md           # Community philosophy
 │   ├── governance.md           # Community governance framework
-│   ├── group_rules.md          # Group rules
-│   ├── admin_handbook.md       # Moderator handbook
-│   ├── emergency.md            # Emergency response plan
-│   ├── roadmap.md              # Governance roadmap
-│   └── changelog.md            # Changelog
-│
-├── bot/                        # Automation module
-│   ├── architecture.md         # Bot architecture
-│   ├── deployment.md           # NapCat deployment guide
-│   ├── plugins.md              # Plugin design
-│   ├── image_pipeline.md       # Image processing pipeline
+│   ├── architecture.md         # System architecture
+│   ├── image-pipeline.md       # Image processing pipeline
+│   ├── deployment.md           # Deployment guide
+│   ├── plugin-development.md   # Plugin development guide
 │   ├── backup.md               # Backup strategy
-│   ├── config.md               # Configuration standards
-│   └── roadmap.md              # Bot development roadmap
+│   ├── roadmap.md              # Project roadmap
+│   ├── adr/                    # Architecture decision records
+│   └── assets/                 # Document assets
 │
-└── docs/                       # Knowledge base
-    ├── philosophy.md           # Community philosophy
-    ├── FAQ.md                  # Frequently asked questions
-    └── glossary.md             # Glossary of terms
+├── bot/                        # Python project
+│   ├── main.py                 # Entry point
+│   ├── core/                   # Core
+│   ├── platform/               # Platform adapters
+│   ├── plugins/                # Plugins
+│   ├── services/               # Shared services
+│   ├── config/                 # Configuration
+│   ├── data/                   # Data
+│   ├── logs/                   # Logs
+│   └── requirements.txt
+│
+├── tests/                      # Tests
+│
+├── scripts/                    # Utility scripts
+│
+└── .github/                    # GitHub Actions
 ```
 
 ---
