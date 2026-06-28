@@ -70,7 +70,6 @@ CommunityOS 的思路是：**把社区管理当作工程问题来解决，而不
 CommunityOS/
 │
 ├── README.md                   # 项目总览（本文件）
-├── ARCHITECTURE.md             # 项目架构总图
 ├── LICENSE
 │
 ├── governance/                 # 治理模块

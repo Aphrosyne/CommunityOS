@@ -71,7 +71,6 @@ CommunityOS/
 │
 ├── README.md                   # Project overview
 ├── README_EN.md                # English version of this document
-├── ARCHITECTURE.md             # Architecture blueprint
 ├── LICENSE
 │
 ├── governance/                 # Governance module
