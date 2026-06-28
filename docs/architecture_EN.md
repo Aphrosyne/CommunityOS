@@ -1,296 +1,330 @@
 # CommunityOS Architecture
 
 > **Status:** Draft
-> **Version:** v0.1
+> **Version:** v0.2
 > **Last Updated:** 2026-06-28
 
 ---
 
 # Purpose
 
-This document describes the overall technical architecture of CommunityOS.
+This document defines the overall software architecture of CommunityOS.
 
-Rather than focusing on specific implementations, this document defines the responsibilities of each subsystem, their relationships, and the architectural principles that guide future development.
+Architecture defines **how the system is organized**, not how individual features are implemented.
 
-The goal is to ensure that CommunityOS remains modular, maintainable, and platform-independent as it evolves.
+All bot functionality, platform adapters, and shared services should follow this architecture.
 
 ---
 
 # Design Goals
 
-CommunityOS follows several architectural goals:
+CommunityOS pursues the following architectural goals:
 
-* Platform-independent
 * Modular
-* Event-driven
-* Plugin-oriented
-* Easily extensible
-* Low maintenance cost
-* Automation-first
+* Plugin-Oriented
+* Platform Independent
+* Maintainable
+* Extensible
+* Automation First
 
-Every component should have a single responsibility and communicate through well-defined interfaces.
+Any new functionality should minimize impact on existing modules.
 
 ---
 
-# High-Level Architecture
+# Overall Architecture
 
 ```text
-                    Community
-                         │
-                         ▼
-                  Governance Layer
-                         │
-                         ▼
-                  Automation Layer
-                         │
-                         ▼
-                 CommunityOS Core
-                         │
-        ┌────────────────┼────────────────┐
-        │                │                │
-        ▼                ▼                ▼
-   Plugin System    Image Service    Backup Service
-        │                │                │
-        └────────────────┼────────────────┘
-                         │
-                         ▼
-                  Platform Adapters
-        ┌──────────────┼──────────────┐
-        ▼              ▼              ▼
-      QQ/NapCat     Discord       Future Platforms
+                  CommunityOS
+                        │
+        ┌───────────────┼───────────────┐
+        │               │               │
+        ▼               ▼               ▼
+      Core          Services        Plugins
+        │               │               │
+        └───────────────┼───────────────┘
+                        │
+                Platform Adapter
+                        │
+                     NapCat / QQ
 ```
 
-CommunityOS separates governance, automation, and platform integration into different layers.
+CommunityOS is divided into four main layers:
 
-Platform adapters should remain thin.
-
-Business logic should remain inside CommunityOS Core.
-
----
-
-# Architecture Principles
-
-## Separation of Responsibilities
-
-Each module should have a clearly defined responsibility.
-
-For example:
-
-* Governance defines rules.
-* Core executes workflows.
-* Plugins implement features.
-* Adapters communicate with external platforms.
-
-No module should take over responsibilities belonging to another layer.
+* Core
+* Services
+* Plugins
+* Platform Adapter
 
 ---
 
-## Platform Independence
+# Core
 
-Community logic should never depend directly on QQ or Discord APIs.
+Core is the center of the system.
 
-Instead, platform adapters should translate platform events into CommunityOS events.
+Responsibilities include:
 
-This allows CommunityOS to support additional platforms without rewriting core logic.
+* Receiving platform events
+* Dispatching tasks
+* Managing plugin lifecycle
+* Providing unified interfaces
 
----
+Core does not handle business logic.
 
-## Event-Driven Design
-
-CommunityOS processes events instead of directly invoking modules.
-
-Example:
-
-```text
-QQ Message Received
-        │
-        ▼
- Event Dispatcher
-        │
-        ▼
- Interested Plugins
-```
-
-Plugins subscribe only to events they need.
-
-This minimizes coupling between modules.
+No business logic should be written directly in Core.
 
 ---
 
-## Plugin-Oriented Architecture
+# Services
 
-Every independent feature should exist as a plugin whenever possible.
+Services provide reusable shared capabilities.
 
 Examples include:
 
-* Welcome messages
-* Keyword monitoring
-* Scheduled mute
-* Statistics
+* Logger
+* Storage
+* Config
+* Scheduler
 * Backup
-* Image processing
 
-Plugins should remain independent and replaceable.
+Services do not respond directly to QQ messages.
+
+Services exist only to provide capabilities to plugins.
+
+Multiple plugins share the same Service.
 
 ---
 
-# Core Components
+# Plugins
 
-## Platform Adapter
+All CommunityOS functionality exists as plugins.
 
-Responsible for communicating with external platforms.
+Example directory layout:
 
-Responsibilities include:
+```text
+plugins/
 
-* Receiving events
+welcome/
+
+image/
+
+backup/
+
+statistics/
+
+keyword/
+
+risk/
+
+scheduler/
+```
+
+Each plugin is responsible for a single, clear responsibility.
+
+Plugins should remain as independent as possible.
+
+When adding new functionality, prioritize creating a new plugin rather than modifying an existing one.
+
+---
+
+# Platform Adapter
+
+The Platform Adapter handles communication with chat platforms.
+
+Current support:
+
+* NapCat (QQ)
+
+Future platforms:
+
+* Discord
+* Telegram
+* Matrix
+* Web
+
+Platform Adapter responsibilities:
+
+* Receiving platform events
 * Sending messages
 * Uploading files
-* Platform authentication
+* Calling platform APIs
 
-Business logic should not exist here.
-
----
-
-## Event Dispatcher
-
-The dispatcher distributes incoming events to interested plugins.
-
-It acts as the communication center of CommunityOS.
-
-The dispatcher should remain lightweight and contain no business logic.
+No business logic should be written in the Platform Adapter.
 
 ---
 
-## Plugin Manager
+# Request Flow
 
-Responsible for:
+A typical request follows this flow:
 
-* Loading plugins
-* Unloading plugins
-* Configuration management
-* Lifecycle management
+```text
+QQ Group Event
 
-Plugins should be isolated whenever possible.
+↓
 
----
+NapCat
 
-## Community Services
+↓
 
-CommunityOS contains reusable services shared by plugins.
+Platform Adapter
 
-Examples:
+↓
 
-* Image Service
-* Backup Service
-* Logging Service
-* Statistics Service
+Core
 
-Services should expose stable interfaces.
+↓
 
----
+Plugin
 
-# Image Service
+↓
 
-Image processing is designed as an independent service.
+Service (if needed)
 
-Responsibilities include:
+↓
 
-* Image preprocessing
-* Metadata removal
-* Image transformation
-* Future synchronization
-* Cache management
+Return Result
 
-Image processing should not depend on a specific messaging platform.
+↓
 
----
+Platform Adapter
 
-# Backup Service
+↓
 
-Responsible for protecting community data.
+QQ Group
+```
 
-Backup targets may include:
+The platform handles communication only.
 
-* Configuration
-* Database
-* Logs
-* Community files
+Plugins handle business logic.
 
-Backup strategy should remain independent from platform adapters.
+Services provide shared capabilities.
 
 ---
 
-# Logging
+# Plugin Lifecycle
 
-Every important operation should produce structured logs.
+Plugins are managed by Core.
 
-Logs should support:
+The lifecycle includes:
 
-* Auditing
-* Debugging
-* Disaster recovery
+* Load
+* Enable
+* Disable
+* Reload
+* Unload
 
-Logging should be centralized rather than scattered throughout the codebase.
+Plugins should not manage their own lifecycle.
 
 ---
 
 # Configuration
 
-Configuration should remain external.
+All configuration uses external configuration files.
 
-Business logic should never contain hardcoded values.
+The following must not be hardcoded:
 
-Future deployment should support environment-based configuration.
+* QQ numbers
+* Group numbers
+* Tokens
+* API keys
+* File paths
 
----
-
-# Deployment Philosophy
-
-CommunityOS should support lightweight deployment.
-
-Typical deployment target:
-
-* Mini PC
-* Raspberry Pi
-* Home Server
-* Docker
-
-Deployment methods should not affect system architecture.
+Configuration should support centralized management in the future.
 
 ---
 
-# Future Evolution
+# Logging
 
-CommunityOS is expected to expand through additional modules rather than major rewrites.
+All important operations should be logged.
 
-Possible future modules include:
+Recommended log events include:
 
-* Dashboard
-* Web Management Panel
-* Community Wiki Integration
-* Cross-platform Synchronization
-* AI-assisted Administration
+* Moderation actions
+* Plugin exceptions
+* Automated tasks
+* Image processing
+* Member approval
 
-Each module should remain optional.
+Logging should be centrally managed by the Logger Service.
+
+---
+
+# Error Handling
+
+When any plugin encounters an exception:
+
+* It must not cause the entire bot to exit.
+* An error log should be recorded.
+* Other plugins should continue running whenever possible.
+
+Plugins should be isolated from each other.
+
+---
+
+# Directory Structure
+
+Recommended directory layout:
+
+```text
+communityos/
+
+core/
+
+services/
+
+plugins/
+
+platform/
+
+config/
+
+data/
+
+logs/
+
+docs/
+```
+
+Each directory has a clearly defined responsibility.
+
+Avoid mixing different responsibilities.
+
+---
+
+# Design Principles
+
+CommunityOS follows these principles during development:
+
+* Single Responsibility
+* Loose Coupling
+* Configuration over Hardcode
+* Plugin over Modification
+* Stability Before Complexity
 
 ---
 
 # Out of Scope
 
-This document does not describe:
+This document does not cover:
 
-* Individual plugin implementations
-* Governance rules
-* Deployment instructions
+* Community governance
+* Group rules
+* NapCat deployment
+* Plugin internals
 * Image processing workflow
-* API specifications
+* Database design
 
-These topics are documented separately.
+These topics are documented elsewhere.
 
 ---
 
-# Closing Statement
+# Summary
 
-CommunityOS is designed as infrastructure rather than software for a single platform.
+CommunityOS aims to build a long-term maintainable community automation system through clear module boundaries.
 
-By separating governance, automation, and platform integration, CommunityOS aims to remain maintainable as both technology and communities continue to evolve.
+Platforms may change.
+
+Plugins may be added.
+
+Implementations may be refactored.
+
+The overall architecture should remain stable and continue supporting the community's growth.
