@@ -1,8 +1,8 @@
 # Community Governance 社区治理
 
-> **状态（Status）：** Draft
-> **版本（Version）：** v0.1
-> **最后更新（Last Updated）：** 2026-06-28
+> **状态：** 草案
+> **版本：** v0.1
+> **最后更新：** 2026-06-28
 
 ---
 
