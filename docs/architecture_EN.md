@@ -265,7 +265,7 @@ Plugins should be isolated from each other.
 Recommended directory layout:
 
 ```text
-communityos/
+bot/
 
 core/
 
@@ -280,6 +280,7 @@ config/
 data/
 
 logs/
+```
 
 docs/
 ```

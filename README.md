@@ -71,28 +71,36 @@ CommunityOS/
 │
 ├── README.md                   # 项目总览（本文件）
 ├── LICENSE
+├── .gitignore
 │
-├── governance/                 # 治理模块
+├── docs/                       # 所有设计文档
+│   ├── philosophy.md           # 社区理念
 │   ├── governance.md           # 社区治理框架
-│   ├── group_rules.md          # 群规
-│   ├── admin_handbook.md       # 管理员手册
-│   ├── emergency.md            # 应急预案
-│   ├── roadmap.md              # 治理路线图
-│   └── changelog.md            # 变更记录
-│
-├── bot/                        # 机器人模块
 │   ├── architecture.md         # 总体架构
-│   ├── deployment.md           # NapCat 部署指南
-│   ├── plugins.md              # 插件设计
-│   ├── image_pipeline.md       # 图片处理流水线
+│   ├── image-pipeline.md       # 图片处理流水线
+│   ├── deployment.md           # 部署指南
+│   ├── plugin-development.md   # 插件开发指南
 │   ├── backup.md               # 备份方案
-│   ├── config.md               # 配置规范
-│   └── roadmap.md              # Bot 开发路线
+│   ├── roadmap.md              # 发展路线图
+│   ├── adr/                    # 架构决策记录
+│   └── assets/                 # 文档资源
 │
-└── docs/                       # 知识文档
-    ├── philosophy.md           # 社区理念
-    ├── FAQ.md                  # 常见问题
-    └── glossary.md             # 术语表
+├── bot/                        # Python 工程
+│   ├── main.py                 # 入口
+│   ├── core/                   # 核心
+│   ├── platform/               # 平台适配
+│   ├── plugins/                # 插件
+│   ├── services/               # 公共服务
+│   ├── config/                 # 配置
+│   ├── data/                   # 数据
+│   ├── logs/                   # 日志
+│   └── requirements.txt
+│
+├── tests/                      # 测试
+│
+├── scripts/                    # 运维脚本
+│
+└── .github/                    # GitHub Actions
 ```
 
 ---
