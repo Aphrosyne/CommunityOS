@@ -33,6 +33,15 @@ BOT_QQ = int(os.getenv("BOT_QQ", "0"))
 # 被 @ 时的回复内容
 GREETING_REPLY = os.getenv("GREETING_REPLY", "你好呀 这里是柳千语")
 
+# 图片投稿
+IMAGE_SUBMIT_GROUP = int(os.getenv("IMAGE_SUBMIT_GROUP", "0"))
+IMAGE_COOLDOWN = int(os.getenv("IMAGE_COOLDOWN", "60"))
+IMAGE_DECODE_URL = os.getenv("IMAGE_DECODE_URL", "")
+
+# 图片存储目录
+IMAGE_DIR = DATA_DIR / "images"
+IMAGE_DIR.mkdir(parents=True, exist_ok=True)
+
 
 def get_data_path(filename: str) -> Path:
     """获取 data/ 目录下文件的完整路径"""
