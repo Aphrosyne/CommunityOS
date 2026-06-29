@@ -71,24 +71,36 @@ CommunityOS/
 │
 ├── README.md                   # 项目总览（本文件）
 ├── LICENSE
+├── CHANGELOG.md
 ├── .gitignore
 │
-├── docs/                       # 所有设计文档
+├── docs/                       # 所有文档
 │   ├── philosophy.md           # 社区理念
-│   ├── governance.md           # 社区治理框架
 │   ├── architecture.md         # 总体架构
-│   ├── image-pipeline.md       # 图片处理流水线
-│   ├── deployment.md           # 部署指南
-│   ├── plugin-development.md   # 插件开发指南
-│   ├── backup.md               # 备份方案
-│   ├── roadmap.md              # 发展路线图
-│   ├── adr/                    # 架构决策记录
-│   └── assets/                 # 文档资源
+│   ├── governance/             # 治理文档
+│   │   ├── governance.md       # 社区治理框架
+│   │   ├── group-rules.md      # 群规
+│   │   ├── admin-handbook.md   # 管理员手册
+│   │   ├── moderator-workflow.md # 管理流程
+│   │   └── emergency.md        # 应急预案
+│   ├── design/                 # 设计文档
+│   │   ├── image-pipeline.md   # 图片处理流水线
+│   │   ├── backup.md           # 备份方案
+│   │   ├── risk-control.md     # 风险控制
+│   │   └── deployment.md       # 部署指南
+│   ├── developer/              # 开发者文档
+│   │   ├── plugin-development.md # 插件开发指南
+│   │   ├── coding-style.md     # 代码规范
+│   │   ├── technical-stack.md  # 技术栈
+│   │   └── api.md              # API 参考
+│   └── development/            # 开发记录
+│       ├── 2026-06-28-bootstrap.md
+│       └── 2026-06-29-image-pipeline.md
 │
 ├── bot/                        # Python 工程
 │   ├── main.py                 # 入口
 │   ├── core/                   # 核心
-│   ├── platform/               # 平台适配
+│   ├── adapters/               # 平台适配
 │   ├── plugins/                # 插件
 │   ├── services/               # 公共服务
 │   ├── config/                 # 配置
@@ -98,8 +110,7 @@ CommunityOS/
 │
 ├── tests/                      # 测试
 │
-├── scripts/                    # 运维脚本
-│
+└── scripts/                    # 运维脚本
 └── .github/                    # GitHub Actions
 ```
 
