@@ -72,24 +72,36 @@ CommunityOS/
 ├── README.md                   # Project overview
 ├── README_EN.md                # English version of this document
 ├── LICENSE
+├── CHANGELOG.md
 ├── .gitignore
 │
-├── docs/                       # All design documents
+├── docs/                       # All documentation
 │   ├── philosophy.md           # Community philosophy
-│   ├── governance.md           # Community governance framework
 │   ├── architecture.md         # System architecture
-│   ├── image-pipeline.md       # Image processing pipeline
-│   ├── deployment.md           # Deployment guide
-│   ├── plugin-development.md   # Plugin development guide
-│   ├── backup.md               # Backup strategy
-│   ├── roadmap.md              # Project roadmap
-│   ├── adr/                    # Architecture decision records
-│   └── assets/                 # Document assets
+│   ├── governance/             # Governance docs
+│   │   ├── governance.md       # Community governance framework
+│   │   ├── group-rules.md      # Group rules
+│   │   ├── admin-handbook.md   # Admin handbook
+│   │   ├── moderator-workflow.md # Moderation workflow
+│   │   └── emergency.md        # Emergency response
+│   ├── design/                 # Design docs
+│   │   ├── image-pipeline.md   # Image pipeline
+│   │   ├── backup.md           # Backup strategy
+│   │   ├── risk-control.md     # Risk control
+│   │   └── deployment.md       # Deployment guide
+│   ├── developer/              # Developer docs
+│   │   ├── plugin-development.md # Plugin development
+│   │   ├── coding-style.md     # Coding style
+│   │   ├── technical-stack.md  # Tech stack
+│   │   └── api.md              # API reference
+│   └── development/            # Development log
+│       ├── 2026-06-28-bootstrap.md
+│       └── 2026-06-29-image-pipeline.md
 │
 ├── bot/                        # Python project
 │   ├── main.py                 # Entry point
 │   ├── core/                   # Core
-│   ├── platform/               # Platform adapters
+│   ├── adapters/               # Platform adapters
 │   ├── plugins/                # Plugins
 │   ├── services/               # Shared services
 │   ├── config/                 # Configuration
@@ -99,9 +111,7 @@ CommunityOS/
 │
 ├── tests/                      # Tests
 │
-├── scripts/                    # Utility scripts
-│
-└── .github/                    # GitHub Actions
+└── scripts/                    # Utility scripts
 ```
 
 ---

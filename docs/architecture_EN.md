@@ -269,11 +269,11 @@ bot/
 
 core/
 
+adapters/
+
 services/
 
 plugins/
-
-platform/
 
 config/
 
