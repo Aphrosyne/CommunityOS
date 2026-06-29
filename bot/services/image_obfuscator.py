@@ -121,7 +121,7 @@ async def obfuscate(image_data: bytes) -> bytes:
 
     # 黄金比例偏移：像素沿曲线循环移位
     offset = round((math.sqrt(5) - 1) / 2 * total)
-    new_idx = np.roll(old_idx, offset)
+    new_idx = np.roll(old_idx, -offset)
 
     # numpy 向量化置换：result[new_idx] = pixels[old_idx]
     flat = pixels.reshape(-1, 4)  # (total, 4)
