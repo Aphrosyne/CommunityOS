@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/lang/zh-CN/
 
 ---
 
+## [0.4.1] - 2026-06-30
+
+### Fixed
+
+- 图片投稿冷却标记时机错误：三张图并发提交可绕过冷却，改为处理开始时即标记。
+- GIF 图片不应进入混淆流程：新增格式检测，GIF 投稿提示不支持。
+
+---
+
 ## [0.4.0] - 2026-06-30
 
 ### Added

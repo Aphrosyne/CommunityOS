@@ -7,12 +7,14 @@
     - 转发混淆图到 .env 配置的目标群
     - 60 秒冷却时间
 """
+import io
 import time
 from pathlib import Path
 
 import httpx
 from nonebot import on_message
 from nonebot.adapters.onebot.v11 import Bot, MessageEvent, MessageSegment
+from PIL import Image as PILImage
 
 from services.config import IMAGE_SUBMIT_GROUP, IMAGE_COOLDOWN, IMAGE_DECODE_URL, IMAGE_DIR
 from services.image_obfuscator import obfuscate
@@ -64,11 +66,12 @@ async def handle_image_submit(bot: Bot, event: MessageEvent):
 
     user_id = event.user_id
 
-    # 冷却检查
+    # 冷却检查 + 立即标记（防止并发提交绕过冷却）
     cooling, remaining = _check_cooldown(user_id)
     if cooling:
         await image_submit.finish(f"投稿冷却中，请等待 {remaining} 秒后再试。")
         return
+    _cooldowns[user_id] = time.time()
 
     # 处理第一张图片
     img_seg = images[0]
@@ -87,6 +90,12 @@ async def handle_image_submit(bot: Bot, event: MessageEvent):
     except Exception as e:
         logger.error(f"下载图片失败: {e}")
         await image_submit.finish("图片下载失败，请稍后重试。")
+        return
+
+    # 格式过滤：GIF 不支持
+    fmt = PILImage.open(io.BytesIO(image_data)).format
+    if fmt == "GIF":
+        await image_submit.finish("暂不支持 GIF 投稿，请发送静态图片。")
         return
 
     # 混淆处理
@@ -128,9 +137,6 @@ async def handle_image_submit(bot: Bot, event: MessageEvent):
         # 发送完成后删除临时文件
         if tmp_path.exists():
             tmp_path.unlink()
-
-    # 更新冷却
-    _cooldowns[user_id] = time.time()
 
     logger.info(f"用户 {user_id} 投稿完成")
     await image_submit.finish("已投稿 ✅")
