@@ -11,6 +11,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/lang/zh-CN/
 
 ---
 
+## [0.4.0] - 2026-06-30
+
+### Added
+
+- 指令系统基础框架：命令注册中心（`services/command.py`）、分发器（`plugins/command_dispatcher.py`）。
+- `/help` 命令：列出所有已注册命令。
+- `/status` 命令：显示运行时间和版本号（Plugin → Service 分层模式的范例）。
+- 运行时服务（`services/runtime.py`）：记录启动时间，提供 `get_uptime()`。
+- 指令系统设计文档（`command-system.md` v0.2）。
+- 开发记录：`2026-06-30-command-system.md`。
+
+### Changed
+
+- 指令触发规则：私聊直接 `/cmd`，群聊必须 `@bot /cmd`。
+- 指令统一 30 秒全局冷却。
+
+---
+
 ## [0.3.1] - 2026-06-29
 
 ### Fixed

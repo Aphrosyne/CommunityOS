@@ -12,7 +12,9 @@ async def on_startup():
     """机器人启动时执行"""
     setup_logging()
     from services.scheduler import start_scheduler
+    from services.runtime import mark_start
     start_scheduler()
+    mark_start()
 
 
 @driver.on_shutdown
