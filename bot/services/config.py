@@ -38,6 +38,13 @@ IMAGE_SUBMIT_GROUP = int(os.getenv("IMAGE_SUBMIT_GROUP", "0"))
 IMAGE_COOLDOWN = int(os.getenv("IMAGE_COOLDOWN", "60"))
 IMAGE_DECODE_URL = os.getenv("IMAGE_DECODE_URL", "")
 
+# 指令系统
+COMMAND_PREFIX = os.getenv("COMMAND_PREFIX", "/")
+COMMAND_COOLDOWN = int(os.getenv("COMMAND_COOLDOWN", "30"))
+
+# 版本号
+BOT_VERSION = os.getenv("BOT_VERSION", "0.0.0")
+
 # 图片存储目录
 IMAGE_DIR = DATA_DIR / "images"
 IMAGE_DIR.mkdir(parents=True, exist_ok=True)
