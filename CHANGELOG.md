@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/lang/zh-CN/
 
 ---
 
-## [0.7.0] - 2026-07-01
+## [0.7.0] - 2026-06-30
 
 ### Added
 
@@ -24,7 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/lang/zh-CN/
 
 ---
 
-## [0.6.1] - 2026-07-01
+## [0.6.1] - 2026-06-30
 
 ### Fixed
 

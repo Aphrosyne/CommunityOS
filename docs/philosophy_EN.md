@@ -2,7 +2,7 @@
 
 > **Status:** Official
 > **Version:** v1.0
-> **Last Updated:** 2026-06-28
+> **Last Updated:** 2026-06-30
 
 ---
 

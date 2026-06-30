@@ -2,7 +2,7 @@
 
 > **Status:** Draft
 > **Version:** v0.2
-> **Last Updated:** 2026-06-28
+> **Last Updated:** 2026-06-29
 
 ---
 
