@@ -11,6 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/lang/zh-CN/
 
 ---
 
+## [0.7.0] - 2026-07-01
+
+### Added
+
+- 混淆插件（`plugins/obfuscate.py`）：私聊「混淆」指令，发图 → 混淆 → 私聊回复混淆图。
+- `asyncio.Lock` 串行化同一用户 session 操作，解决并发收图与完成竞态。
+
+### Fixed
+
+- 发布/混淆 session 图片收集并发竞态（`pop` → `get+clear`，`setdefault` 安全重建）。
+
+---
+
 ## [0.6.1] - 2026-07-01
 
 ### Fixed

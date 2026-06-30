@@ -4,6 +4,7 @@
 流程：
     用户发「发布」→ 进入发布模式 → 发送图片 → 发「完成」→ 批量混淆发布
 """
+import asyncio
 import io
 import time
 
@@ -35,6 +36,15 @@ from services.logger import get_logger
 logger = get_logger(__name__)
 
 PUBLISH_TYPE = "publish"
+
+_user_locks: dict[int, asyncio.Lock] = {}
+
+
+def _get_lock(user_id: int) -> asyncio.Lock:
+    lock = _user_locks.get(user_id)
+    if lock is None:
+        lock = _user_locks[user_id] = asyncio.Lock()
+    return lock
 
 
 async def _reply(bot: Bot, event: MessageEvent, msg: str, reply_type: str) -> None:
@@ -98,6 +108,11 @@ publish_session = on_message(rule=_publish_rule, priority=0, block=True)
 
 @publish_session.handle()
 async def handle_session(bot: Bot, event: MessageEvent):
+    async with _get_lock(event.user_id):
+        await _handle_session_locked(bot, event)
+
+
+async def _handle_session_locked(bot: Bot, event: MessageEvent):
     msg = event.get_plaintext().strip()
     session = get_active(event.user_id, PUBLISH_TYPE)
 
@@ -115,7 +130,8 @@ async def handle_session(bot: Bot, event: MessageEvent):
     # 完成
     if msg == "完成":
         # 取出并清空图片列表（防止并发「完成」重复处理）
-        images = session.data.pop("images", [])
+        images = session.data.get("images", [])
+        session.data["images"] = []  # 清空但保留 key，防止并发收图丢失引用
         if not images:
             await _reply(bot, event, "尚未收到任何图片，请先发送图片。", "publish_empty")
             return
@@ -177,7 +193,8 @@ async def handle_session(bot: Bot, event: MessageEvent):
     # 收集图片
     img_segs = [seg for seg in event.message if seg.type == "image"]
     if img_segs:
-        current = len(session.data["images"])
+        images = session.data.setdefault("images", [])
+        current = len(images)
 
         for img_seg in img_segs:
             # 上限检查
@@ -206,10 +223,10 @@ async def handle_session(bot: Bot, event: MessageEvent):
                 await _reply(bot, event, "暂不支持 GIF，已跳过。", "publish_gif")
                 continue
 
-            session.data["images"].append(image_data)
+            images.append(image_data)
             current += 1
 
-        count = len(session.data["images"])
+        count = len(images)
         await _reply(bot, event, f"已接收 {count} 张图片。", "publish_count")
         return
 
