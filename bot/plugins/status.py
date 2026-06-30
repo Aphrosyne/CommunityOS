@@ -17,4 +17,4 @@ async def handle_status(bot: Bot, event: MessageEvent):
     await bot.send(event, reply)
 
 
-register("status", handle_status, description="查看系统运行状态")
+register("status", handle_status, description="查看系统运行状态", aliases=["状态"])

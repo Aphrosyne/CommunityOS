@@ -11,6 +11,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/lang/zh-CN/
 
 ---
 
+## [0.5.0] - 2026-06-30
+
+### Added
+
+- 命令别名系统：`register()` 支持 `aliases` 参数，同一命令可被多个名称触发。
+- `help` 别名「帮助」，`status` 别名「状态」。
+
+### Changed
+
+- **移除指令前缀**：不再使用 `/`，改为消息首词匹配已注册命令。
+- `/help` → `help`，`/status` → `status`。
+- 未注册命令静默忽略，不再回复「未知命令」提示。
+- 指令系统设计文档更新至 v0.3。
+
+---
+
 ## [0.4.1] - 2026-06-30
 
 ### Fixed
