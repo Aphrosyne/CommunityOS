@@ -30,13 +30,11 @@ driver.register_adapter(OneBotV11Adapter)
 import core  # noqa: E402
 
 # --- 加载插件 ---
-nonebot.load_plugin("plugins.greet")
-nonebot.load_plugin("plugins.image_submit")
+# nonebot.load_plugin("plugins.greet")
 nonebot.load_plugin("plugins.command_dispatcher")
 nonebot.load_plugin("plugins.help")
 nonebot.load_plugin("plugins.status")
-
-# TODO: 后续改为 load_plugins("plugins") 自动扫描所有插件
+nonebot.load_plugin("plugins.publish")# TODO: 后续改为 load_plugins("plugins") 自动扫描所有插件
 
 # --- 启动时打印已加载插件 ---
 @driver.on_startup
