@@ -11,6 +11,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/lang/zh-CN/
 
 ---
 
+## [0.6.0] - 2026-06-30
+
+### Added
+
+- SessionService（`services/session.py`）：通用多步交互会话管理，支持创建/完成/取消/超时扫描。
+- ThrottleService（`services/throttle.py`）：回复节流，按 `(user_id, reply_type)` 控制机器人回复频率。
+- Publish 批量发布插件（`plugins/publish.py`）：私聊「发布」进入多步交互模式，收集图片后批量混淆发布。
+- 动态发布冷却：`cooldown = min(base + per_image × count, max)`。
+- 单次发布图片上限（默认 10 张）。
+- 超时扫描后台任务，超时自动通知用户。
+
+### Changed
+
+- image_submit.py 已被 publish.py 替代并移除。
+- 发布时间窗口从 5 分钟改为 3 分钟。
+
+### Fixed
+
+- 取消发布后重复回复提示语的 bug。
+
+---
+
 ## [0.5.0] - 2026-06-30
 
 ### Added
