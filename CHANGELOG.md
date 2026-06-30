@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/lang/zh-CN/
 
 ---
 
+## [0.6.1] - 2026-07-01
+
+### Fixed
+
+- 发布「完成」并发竞态：处理前取出图片列表防止重复发布。
+- publish_rule 群聊泄露：session 激活时私聊限定，群聊消息不再被拦截。
+- 超时通知丢失：bot 未连接时保留会话数据，下次扫描再通知。
+- 群消息发送失败不再报「✓ 已发布」成功提示。
+- 所有图片混淆失败时提示错误，不发空消息。
+
+---
+
 ## [0.6.0] - 2026-06-30
 
 ### Added

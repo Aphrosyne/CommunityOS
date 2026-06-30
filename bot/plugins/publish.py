@@ -85,13 +85,12 @@ register("publish", handle_publish, description="批量图片投稿", aliases=["
 
 
 def _publish_rule(event: MessageEvent) -> bool:
-    """session 激活时匹配所有消息；未激活时仅在私聊匹配「发布」"""
+    """仅在私聊匹配：session 激活时所有消息，未激活时仅「发布」/「publish」"""
+    if event.message_type != "private":
+        return False
     if get_active(event.user_id, PUBLISH_TYPE):
         return True
-    return (
-        event.message_type == "private"
-        and event.get_plaintext().strip() in ("发布", "publish")
-    )
+    return event.get_plaintext().strip() in ("发布", "publish")
 
 
 publish_session = on_message(rule=_publish_rule, priority=0, block=True)
@@ -115,7 +114,8 @@ async def handle_session(bot: Bot, event: MessageEvent):
 
     # 完成
     if msg == "完成":
-        images = session.data.get("images", [])
+        # 取出并清空图片列表（防止并发「完成」重复处理）
+        images = session.data.pop("images", [])
         if not images:
             await _reply(bot, event, "尚未收到任何图片，请先发送图片。", "publish_empty")
             return
@@ -136,7 +136,13 @@ async def handle_session(bot: Bot, event: MessageEvent):
             tmp_path.write_bytes(obfuscated_data)
             tmp_paths.append(tmp_path)
 
+        if not tmp_paths:
+            await _reply(bot, event, "所有图片处理失败，请稍后重试。", "publish_failed")
+            complete(session)
+            return
+
         # 合并为一条群消息
+        sent = False
         try:
             msg = MessageSegment.at(event.user_id)
             for p in tmp_paths:
@@ -147,12 +153,17 @@ async def handle_session(bot: Bot, event: MessageEvent):
                 group_id=IMAGE_SUBMIT_GROUP,
                 message=msg,
             )
+            sent = True
         except Exception as e:
             logger.error(f"发布到群失败: {e}")
         finally:
             for p in tmp_paths:
                 if p.exists():
                     p.unlink()
+
+        if not sent:
+            await _reply(bot, event, "发布失败，请稍后重试。", "publish_failed")
+            return
 
         complete(session)
 
@@ -219,14 +230,17 @@ async def _check_publish_timeout():
         return
     try:
         bot_instance = nonebot.get_bot()
-        for user_id in expired:
-            if should_reply(user_id, "publish_timeout"):
+    except ValueError:
+        return  # bot 尚未连接，下次扫描再通知
+    for user_id in expired:
+        if should_reply(user_id, "publish_timeout"):
+            try:
                 await bot_instance.send_private_msg(
                     user_id=user_id,
                     message="⏰ 发布模式已超时，已自动退出。",
                 )
-    except Exception as e:
-        logger.error(f"超时通知失败: {e}")
+            except Exception as e:
+                logger.error(f"超时通知发送失败 (user={user_id}): {e}")
 
 # 启动时注册定时检查（每 10 秒扫描一次）
 driver = nonebot.get_driver()
