@@ -13,13 +13,15 @@ async def handle_help(bot: Bot, event: MessageEvent):
         return
 
     lines = ["可用命令：", ""]
-    for name, desc in commands.items():
-        line = f"/{name}"
-        if desc:
-            line += f" - {desc}"
+    for cmd in commands:
+        names = [cmd["name"], *cmd["aliases"]]
+        label = " | ".join(names)
+        line = label
+        if cmd["description"]:
+            line += f" — {cmd['description']}"
         lines.append(line)
 
     await bot.send(event, "\n".join(lines))
 
 
-register("help", handle_help, description="显示帮助信息")
+register("help", handle_help, description="显示帮助信息", aliases=["帮助"])
