@@ -1,7 +1,7 @@
 # CommunityOS Philosophy
 
-> **Status:** Draft
-> **Version:** v0.1
+> **Status:** Official
+> **Version:** v1.0
 > **Last Updated:** 2026-06-28
 
 ---
