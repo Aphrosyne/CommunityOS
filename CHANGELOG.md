@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/lang/zh-CN/
 
 ---
 
+## [0.8.1] - 2026-07-01
+
+### Fixed
+
+- 群聊引用解图未加锁，并发可绕过冷却。
+- `write_bytes` 异常未捕获导致临时文件泄漏（decode/obfuscate/publish 同步修复）。
+- `p.unlink()` 在 finally 中抛异常可掩盖原始错误。
+
+---
+
 ## [0.8.0] - 2026-07-01
 
 ### Added
