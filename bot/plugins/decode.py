@@ -254,16 +254,22 @@ async def _deobfuscate_batch(images: list[bytes], user_id: int, prefix: str) -> 
 
         timestamp = time.strftime("%Y-%m-%d_%H%M%S")
         tmp = IMAGE_DIR / f"_{prefix}_{timestamp}_{user_id}_{i}.jpg"
-        tmp.write_bytes(result)
-        paths.append(tmp)
+        try:
+            tmp.write_bytes(result)
+            paths.append(tmp)
+        except Exception as e:
+            logger.error(f"写入临时文件失败: {e}")
     return paths
 
 
-def _cleanup_tmp(paths: list[Path]) -> None:
+def _cleanup_tmp(paths: list) -> None:
     """清理临时文件"""
     for p in paths:
-        if p.exists():
-            p.unlink()
+        try:
+            if p.exists():
+                p.unlink()
+        except Exception as e:
+            logger.error(f"清理临时文件失败 ({p}): {e}")
 
 
 # ── 群聊引用解图 ──
@@ -283,6 +289,11 @@ group_decode = on_message(rule=to_me() & _group_reply_rule, priority=0, block=Tr
 
 @group_decode.handle()
 async def handle_group_decode(bot: Bot, event: MessageEvent):
+    async with _get_lock(event.user_id):
+        await _handle_group_decode_locked(bot, event)
+
+
+async def _handle_group_decode_locked(bot: Bot, event: MessageEvent):
     user_id = event.user_id
 
     # 冷却检查（与解图插件共用）

@@ -138,8 +138,11 @@ async def _handle_session_locked(bot: Bot, event: MessageEvent):
 
             timestamp = time.strftime("%Y-%m-%d_%H%M%S")
             tmp_path = IMAGE_DIR / f"_obfuscate_{timestamp}_{event.user_id}_{i}.jpg"
-            tmp_path.write_bytes(obfuscated_data)
-            tmp_paths.append(tmp_path)
+            try:
+                tmp_path.write_bytes(obfuscated_data)
+                tmp_paths.append(tmp_path)
+            except Exception as e:
+                logger.error(f"写入临时文件失败: {e}")
 
         if not tmp_paths:
             await _reply(bot, event, "所有图片处理失败，请稍后重试。", "obf_failed")
@@ -159,8 +162,11 @@ async def _handle_session_locked(bot: Bot, event: MessageEvent):
             logger.error(f"发送混淆图失败: {e}")
         finally:
             for p in tmp_paths:
-                if p.exists():
-                    p.unlink()
+                try:
+                    if p.exists():
+                        p.unlink()
+                except Exception as e:
+                    logger.error(f"清理临时文件失败 ({p}): {e}")
 
         complete(session)
         cd = min(
