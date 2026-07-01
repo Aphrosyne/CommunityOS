@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/lang/zh-CN/
 
 ---
 
+## [0.8.0] - 2026-07-01
+
+### Added
+
+- 解混淆插件（`plugins/decode.py`）：三种触发方式 —— 私聊会话「解图」、私聊转发 publish 自动识别、群聊引用+@bot 解图私信返回。
+- `image_obfuscator.deobfuscate()`：DEC 模式解混淆函数。
+- 公共下载/解混淆函数（`_download_images`、`_deobfuscate_batch`），消除三处分身代码。
+
+---
+
 ## [0.7.0] - 2026-06-30
 
 ### Added

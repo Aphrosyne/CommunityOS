@@ -137,3 +137,35 @@ async def obfuscate(image_data: bytes) -> bytes:
     logger.info(f"混淆完成: {width}x{height}")
 
     return buf.getvalue()
+
+
+async def deobfuscate(image_data: bytes) -> bytes:
+    """对混淆图片执行 Gilbert 曲线解混淆（DEC 模式）
+
+    与 obfuscate() 置换方向相反。
+    """
+    img = Image.open(io.BytesIO(image_data)).convert("RGBA")
+    width, height = img.size
+    total = width * height
+
+    logger.info(f"开始解混淆: {width}x{height} ({total} 像素)")
+
+    pixels = np.array(img, dtype=np.uint8)
+    coords = _gilbert_coords(width, height)
+
+    old_idx = coords[:, 0] + coords[:, 1] * width
+    offset = round((math.sqrt(5) - 1) / 2 * total)
+    new_idx = np.roll(old_idx, offset)  # DEC: 反向置换
+
+    flat = pixels.reshape(-1, 4)
+    result = np.zeros_like(flat)
+    result[new_idx] = flat[old_idx]
+    result_img = result.reshape(height, width, 4)
+
+    rgb = Image.fromarray(result_img, "RGBA").convert("RGB")
+    buf = io.BytesIO()
+    rgb.save(buf, format="JPEG", quality=95)
+
+    logger.info(f"解混淆完成: {width}x{height}")
+
+    return buf.getvalue()
