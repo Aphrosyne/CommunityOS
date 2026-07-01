@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/lang/zh-CN/
 
 ---
 
+## [0.8.3] - 2026-07-01
+
+### Fixed
+
+- decode.py 缺少 `from pathlib import Path` 导入。
+
+---
+
 ## [0.8.2] - 2026-07-01
 
 ### Added
