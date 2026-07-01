@@ -89,7 +89,15 @@ async def handle_publish(bot: Bot, event: MessageEvent):
     )
 
 
-register("publish", handle_publish, description="批量图片投稿", aliases=["发布"])
+register(
+    "publish", handle_publish,
+    description="批量图片投稿",
+    aliases=["发布"],
+    help_text="📷 发布 (publish | 发布)\n"
+    "私聊发送「发布」→ 进入发布模式 → 发送图片 → 发送「完成」开始发布。\n"
+    "最多 10 张，3 分钟超时，发布后动态冷却。\n"
+    "所有图片混淆后合并为一条消息发到指定群。",
+)
 
 # ── 会话消息拦截 ──
 

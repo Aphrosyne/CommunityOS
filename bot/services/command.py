@@ -27,16 +27,18 @@ def register(
     handler: Handler,
     description: str = "",
     aliases: Sequence[str] | None = None,
+    help_text: str = "",
 ) -> None:
     """注册命令
 
     Args:
         name: 命令名（如 "help"）
         handler: 异步处理函数
-        description: 命令说明，help 中展示
+        description: 命令简短说明，help 中展示
         aliases: 别名列表（如 ["帮助"]），可选
+        help_text: 详细帮助说明（如 "帮助 xxx" 时展示），可选
     """
-    _commands[name] = {"handler": handler, "description": description}
+    _commands[name] = {"handler": handler, "description": description, "help_text": help_text}
     logger.info(f"命令已注册: {name}")
 
     if aliases:
@@ -60,14 +62,14 @@ def get(name: str) -> Handler | None:
 
 
 def list_all() -> list[dict[str, Any]]:
-    """列出所有已注册命令，含别名信息"""
+    """列出所有已注册命令，含别名和详细说明"""
     result = []
     for name, info in _commands.items():
-        # 找出指向此命令的所有别名
         cmd_aliases = [a for a, n in _aliases.items() if n == name]
         result.append({
             "name": name,
             "description": info["description"],
             "aliases": cmd_aliases,
+            "help_text": info.get("help_text", ""),
         })
     return result
