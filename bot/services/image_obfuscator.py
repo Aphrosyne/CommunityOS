@@ -15,7 +15,7 @@ from PIL import Image
 
 from services.logger import get_logger
 
-logger = get_logger(__name__)
+logger = get_logger("image")
 
 
 def _gilbert_coords(width: int, height: int) -> np.ndarray:

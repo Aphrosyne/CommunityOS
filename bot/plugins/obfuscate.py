@@ -31,7 +31,7 @@ from services.session import (
 from services.throttle import should_reply
 from services.logger import get_logger
 
-logger = get_logger(__name__)
+logger = get_logger("image")
 
 OBFUSCATE_TYPE = "obfuscate"
 
@@ -74,6 +74,7 @@ async def handle_obfuscate(bot: Bot, event: MessageEvent):
         timeout=PUBLISH_TIMEOUT,
         initial_data={"images": []},
     )
+    logger.info(f"[混淆] 用户 {event.user_id} 进入混淆模式")
     await _reply(
         bot, event,
         f"📷 已进入混淆模式（最多 {PUBLISH_MAX_IMAGES} 张）。\n"
@@ -123,6 +124,7 @@ async def _handle_session_locked(bot: Bot, event: MessageEvent):
     # 取消
     if msg_text == "取消":
         cancel(session)
+        logger.info(f"[混淆] 用户 {event.user_id} 取消混淆")
         await _reply(bot, event, "已取消混淆。", "obf_cancel")
         return
 
@@ -183,6 +185,7 @@ async def _handle_session_locked(bot: Bot, event: MessageEvent):
         )
         _cd_expires[event.user_id] = time.time() + cd
 
+        logger.info(f"[混淆] 用户 {event.user_id} 完成 {sent} 张，冷却 {cd}s")
         await _reply(bot, event, f"✓ 已混淆 {sent} 张图片。\n冷却 {cd} 秒后可再次使用。", "obf_done")
         return
 
@@ -219,6 +222,7 @@ async def _handle_session_locked(bot: Bot, event: MessageEvent):
             current += 1
 
         count = len(images)
+        logger.info(f"[混淆] 用户 {event.user_id} 已接收 {count} 张")
         await _reply(bot, event, f"已接收 {count} 张图片。", "obf_count")
         return
 
@@ -242,6 +246,7 @@ async def _check_obfuscate_timeout():
     for user_id in expired:
         if should_reply(user_id, "obf_timeout"):
             try:
+                logger.info(f"[混淆] 用户 {user_id} 超时退出")
                 await bot_instance.send_private_msg(
                     user_id=user_id,
                     message="⏰ 混淆模式已超时，已自动退出。",

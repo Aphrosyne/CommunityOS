@@ -33,7 +33,7 @@ from services.session import (
 from services.throttle import should_reply
 from services.logger import get_logger
 
-logger = get_logger(__name__)
+logger = get_logger("image")
 
 PUBLISH_TYPE = "publish"
 
@@ -81,6 +81,7 @@ async def handle_publish(bot: Bot, event: MessageEvent):
         timeout=PUBLISH_TIMEOUT,
         initial_data={"images": []},
     )
+    logger.info(f"[发布] 用户 {event.user_id} 进入发布模式")
     await _reply(
         bot, event,
         f"📷 已进入发布模式（最多 {PUBLISH_MAX_IMAGES} 张）。\n"
@@ -132,6 +133,7 @@ async def _handle_session_locked(bot: Bot, event: MessageEvent):
     # 取消
     if msg == "取消":
         cancel(session)
+        logger.info(f"[发布] 用户 {event.user_id} 取消发布")
         await _reply(bot, event, "已取消发布。", "publish_cancel")
         return
 
@@ -201,6 +203,7 @@ async def _handle_session_locked(bot: Bot, event: MessageEvent):
         cd = min(PUBLISH_COOLDOWN_BASE + PUBLISH_COOLDOWN_PER_IMAGE * len(tmp_paths), PUBLISH_COOLDOWN_MAX)
         _cd_expires[event.user_id] = time.time() + cd
 
+        logger.info(f"[发布] 用户 {event.user_id} 完成 {len(tmp_paths)} 张，冷却 {cd}s")
         await _reply(bot, event, f"✓ 已发布 {len(tmp_paths)} 张图片。\n冷却 {cd} 秒后可再次发布。", "publish_done")
         return
 
@@ -241,6 +244,7 @@ async def _handle_session_locked(bot: Bot, event: MessageEvent):
             current += 1
 
         count = len(images)
+        logger.info(f"[发布] 用户 {event.user_id} 已接收 {count} 张")
         await _reply(bot, event, f"已接收 {count} 张图片。", "publish_count")
         return
 
@@ -266,6 +270,7 @@ async def _check_publish_timeout():
     for user_id in expired:
         if should_reply(user_id, "publish_timeout"):
             try:
+                logger.info(f"[发布] 用户 {user_id} 超时退出")
                 await bot_instance.send_private_msg(
                     user_id=user_id,
                     message="⏰ 发布模式已超时，已自动退出。",

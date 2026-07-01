@@ -11,6 +11,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/lang/zh-CN/
 
 ---
 
+## [0.9.0] - 2026-07-01
+
+### Added
+
+- Logger Service 重构：按业务域分日志文件（`bot.log` / `command.log` / `image.log`）。
+- 图片三插件补业务日志：进入模式、收图、完成、取消、超时。
+- 日志设计文档（`logger.md` v1.0）。
+
+### Changed
+
+- `command_dispatcher` 改为写入 `command.log`，独立于 `bot.log`。
+- 图片插件日志统一写入 `image.log`。
+
+---
+
 ## [0.8.3] - 2026-07-01
 
 ### Fixed
