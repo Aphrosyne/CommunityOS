@@ -18,7 +18,7 @@ from services.command import get as get_command, list_all
 from services.config import COMMAND_COOLDOWN
 from services.logger import get_logger
 
-logger = get_logger(__name__)
+logger = get_logger("command")
 
 # 冷却: {user_id: last_time}
 _cooldowns: dict[int, float] = {}
