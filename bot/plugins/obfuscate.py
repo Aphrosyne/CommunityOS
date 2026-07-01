@@ -82,7 +82,15 @@ async def handle_obfuscate(bot: Bot, event: MessageEvent):
     )
 
 
-register("obfuscate", handle_obfuscate, description="私聊图片混淆", aliases=["混淆"])
+register(
+    "obfuscate", handle_obfuscate,
+    description="私聊图片混淆",
+    aliases=["混淆"],
+    help_text="🔒 混淆 (obfuscate | 混淆)\n"
+    "私聊发送「混淆」→ 进入混淆模式 → 发送图片 → 发送「完成」开始混淆。\n"
+    "上限和冷却同上。\n"
+    "混淆图由私聊一条消息返回，不发群。",
+)
 
 # ── 会话消息拦截 ──
 

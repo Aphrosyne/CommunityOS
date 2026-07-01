@@ -11,6 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/lang/zh-CN/
 
 ---
 
+## [0.8.2] - 2026-07-01
+
+### Added
+
+- 帮助系统「帮助 图片处理」参数化详细说明。
+- 图片处理流水线文档更新至 v1.0 正式版。
+
+### Changed
+
+- `register()` 支持 `help_text` 参数，插件可附带详细使用说明。
+
+---
+
 ## [0.8.1] - 2026-07-01
 
 ### Fixed
