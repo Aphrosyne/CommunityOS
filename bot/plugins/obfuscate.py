@@ -24,7 +24,9 @@ from services.config import (
     PUBLISH_TIMEOUT,
     SESSION_SCAN_INTERVAL,
 )
-from services.image_obfuscator import obfuscate, check_image_limits, PIXEL_TIER_REJECT
+from services.image_obfuscator import (
+    obfuscate, check_image_limits, precheck_limits, PIXEL_TIER_REJECT,
+)
 from services.session import (
     create, get_active, complete, cancel, get_expired,
 )
@@ -207,6 +209,13 @@ async def _handle_session_locked(bot: Bot, event: MessageEvent):
             if not url:
                 continue
 
+            # 预检（下载前）
+            tier, _, reason = await precheck_limits(url, int(img_seg.data.get("file_size", 0)))
+            if tier == PIXEL_TIER_REJECT:
+                await _reply(bot, event, reason, "obf_size")
+                continue
+
+            # 下载
             try:
                 async with httpx.AsyncClient(timeout=30) as client:
                     resp = await client.get(url)

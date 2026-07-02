@@ -27,7 +27,9 @@ from services.config import (
     PUBLISH_TIMEOUT,
     SESSION_SCAN_INTERVAL,
 )
-from services.image_obfuscator import deobfuscate, check_image_limits, PIXEL_TIER_REJECT
+from services.image_obfuscator import (
+    deobfuscate, check_image_limits, precheck_limits, PIXEL_TIER_REJECT,
+)
 from services.session import (
     create, get_active, complete, cancel, get_expired,
 )
@@ -248,6 +250,12 @@ async def _download_images(img_segs) -> list[bytes]:
         url = img_seg.data.get("url", "")
         if not url:
             continue
+
+        # 预检
+        tier, _, _ = await precheck_limits(url, int(img_seg.data.get("file_size", 0)))
+        if tier == PIXEL_TIER_REJECT:
+            continue
+
         try:
             async with httpx.AsyncClient(timeout=30) as client:
                 resp = await client.get(url)

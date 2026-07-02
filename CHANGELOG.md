@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/lang/zh-CN/
 
 ---
 
+## [0.12.1] - 2026-07-02
+
+### Changed
+
+- 图片预检：下载前通过 Range 请求获取尺寸，超限直接拒绝，省带宽。
+
+---
+
 ## [0.12.0] - 2026-07-02
 
 ### Added

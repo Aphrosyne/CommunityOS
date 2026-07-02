@@ -26,7 +26,10 @@ from services.config import (
     PUBLISH_TIMEOUT,
     SESSION_SCAN_INTERVAL,
 )
-from services.image_obfuscator import obfuscate, check_image_limits, PIXEL_TIER_REJECT, PIXEL_TIER_BOT_ONLY
+from services.image_obfuscator import (
+    obfuscate, check_image_limits, precheck_limits,
+    PIXEL_TIER_REJECT, PIXEL_TIER_BOT_ONLY,
+)
 from services.session import (
     Session, create, get_active, append_data, complete, cancel, get_expired,
 )
@@ -297,6 +300,12 @@ async def _handle_session_locked(bot: Bot, event: MessageEvent):
 
             url = img_seg.data.get("url", "")
             if not url:
+                continue
+
+            # 预检（下载前）
+            tier, _, reason = await precheck_limits(url, int(img_seg.data.get("file_size", 0)))
+            if tier == PIXEL_TIER_REJECT:
+                await _reply(bot, event, reason, "publish_size")
                 continue
 
             # 下载

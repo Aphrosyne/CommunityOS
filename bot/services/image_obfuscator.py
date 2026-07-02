@@ -10,6 +10,7 @@
 """
 import math
 import io
+import httpx
 import numpy as np
 from PIL import Image
 
@@ -24,31 +25,63 @@ PIXEL_TIER_BOT_ONLY = 1  # 超过网站兼容上限，仅 bot 可解
 PIXEL_TIER_NORMAL = 0    # 正常，网站兼容
 
 
+async def _probe_dimensions(url: str) -> tuple[int, int] | None:
+    """只下载文件头获取图片尺寸，返回 (width, height) 或 None"""
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.get(url, headers={"Range": "bytes=0-8192"})
+            if resp.status_code not in (206, 200):
+                return None
+            img = Image.open(io.BytesIO(resp.content))
+            return img.size
+    except Exception:
+        return None
+
+
+def _get_pixel_tier(pixels: int) -> tuple[int, str]:
+    """根据像素数返回等级和拒绝原因"""
+    if pixels > IMAGE_MAX_PIXELS:
+        return (PIXEL_TIER_REJECT, f"图片分辨率过大（{pixels:,} 像素）")
+    if pixels > IMAGE_WEBSITE_MAX_PIXELS:
+        return (PIXEL_TIER_BOT_ONLY, "")
+    return (PIXEL_TIER_NORMAL, "")
+
+
 def check_image_limits(data: bytes) -> tuple[int, int, str]:
-    """检查图片大小和像素限制
+    """检查图片大小和像素限制（已下载时调用）
 
     Returns:
         (tier, pixels, reason)
-        tier: PIXEL_TIER_NORMAL / PIXEL_TIER_BOT_ONLY / PIXEL_TIER_REJECT
-        pixels: 像素总数
-        reason: 拒绝原因（仅 REJECT 时有值）
     """
-    # 文件大小检查
     size_mb = len(data) / (1024 * 1024)
     if size_mb > IMAGE_MAX_FILE_SIZE:
         return (PIXEL_TIER_REJECT, 0, f"图片文件过大（{size_mb:.1f}MB > {IMAGE_MAX_FILE_SIZE}MB）")
 
-    # 像素检查
     img = Image.open(io.BytesIO(data))
-    w, h = img.size
-    pixels = w * h
-    if pixels > IMAGE_MAX_PIXELS:
-        return (PIXEL_TIER_REJECT, pixels, f"图片分辨率过大（{w}×{h}, {pixels:,} 像素）")
+    pixels = img.size[0] * img.size[1]
+    tier, reason = _get_pixel_tier(pixels)
+    return (tier, pixels, reason)
 
-    if pixels > IMAGE_WEBSITE_MAX_PIXELS:
-        return (PIXEL_TIER_BOT_ONLY, pixels, "")
 
-    return (PIXEL_TIER_NORMAL, pixels, "")
+async def precheck_limits(url: str, file_size: int = 0) -> tuple[int, int, str]:
+    """下载前预检：文件大小 + 探针获取像素
+
+    Returns:
+        (tier, pixels, reason) — REJECT 时可以跳过下载
+    """
+    # 文件大小检查（从 OneBot 事件中获取，无需下载）
+    if file_size > IMAGE_MAX_FILE_SIZE * 1024 * 1024:
+        size_mb = file_size / (1024 * 1024)
+        return (PIXEL_TIER_REJECT, 0, f"图片文件过大（{size_mb:.1f}MB > {IMAGE_MAX_FILE_SIZE}MB）")
+
+    # 探针获取尺寸
+    dims = await _probe_dimensions(url)
+    if dims is None:
+        return (PIXEL_TIER_NORMAL, 0, "")  # 无法探测，放行下载
+
+    pixels = dims[0] * dims[1]
+    tier, reason = _get_pixel_tier(pixels)
+    return (tier, pixels, reason)
 
 
 def _gilbert_coords(width: int, height: int) -> np.ndarray:
