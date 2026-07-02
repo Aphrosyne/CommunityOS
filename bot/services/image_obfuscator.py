@@ -8,16 +8,44 @@
     2. 按黄金比例偏移在曲线上循环移位
     3. numpy 向量化置换像素
 """
+import hashlib
 import math
 import io
 import httpx
 import numpy as np
 from PIL import Image
 
-from services.config import IMAGE_MAX_FILE_SIZE, IMAGE_MAX_PIXELS, IMAGE_WEBSITE_MAX_PIXELS
+from services.config import (
+    DATA_DIR, IMAGE_CACHE_MAX_MB, IMAGE_MAX_FILE_SIZE,
+    IMAGE_MAX_PIXELS, IMAGE_WEBSITE_MAX_PIXELS,
+)
+from services.cache import FileCache
 from services.logger import get_logger
 
 logger = get_logger("image")
+
+# 解混淆缓存：MD5(混淆图) → 原图（文件存储于 data/cache/images/）
+_image_cache = FileCache(
+    max_mb=IMAGE_CACHE_MAX_MB,
+    cache_dir=DATA_DIR / "cache" / "images",
+    name="image",
+)
+
+
+def cache_get(obfuscated_data: bytes) -> bytes | None:
+    """查询解混淆缓存"""
+    key = hashlib.md5(obfuscated_data).hexdigest() + ".jpg"
+    result = _image_cache.get(key)
+    if result is not None:
+        logger.info(f"[缓存] 命中: {key[:16]}")
+    return result
+
+
+def cache_set(obfuscated_data: bytes, original_data: bytes) -> None:
+    """写入解混淆缓存"""
+    key = hashlib.md5(obfuscated_data).hexdigest() + ".jpg"
+    _image_cache.set(key, original_data)
+    logger.info(f"[缓存] 写入: {key[:16]})")
 
 # 像素等级
 PIXEL_TIER_REJECT = -1   # 超过上限，拒绝

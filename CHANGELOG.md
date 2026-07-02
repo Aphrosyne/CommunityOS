@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/lang/zh-CN/
 
 ---
 
+## [0.13.0] - 2026-07-02
+
+### Added
+
+- Cache Service（`services/cache.py`）：通用文件缓存，按总字节数限制，最旧文件淘汰。
+- 图片解混淆缓存：`MD5(混淆图) → 原图`，磁盘持久化，重启不丢。
+- 缓存文档（`cache.md` v1.0）。
+
+---
+
 ## [0.12.1] - 2026-07-02
 
 ### Changed

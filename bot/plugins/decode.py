@@ -28,7 +28,7 @@ from services.config import (
     SESSION_SCAN_INTERVAL,
 )
 from services.image_obfuscator import (
-    deobfuscate, check_image_limits, precheck_limits, PIXEL_TIER_REJECT,
+    cache_get, cache_set, deobfuscate, check_image_limits, precheck_limits, PIXEL_TIER_REJECT,
 )
 from services.session import (
     create, get_active, complete, cancel, get_expired,
@@ -281,11 +281,26 @@ async def _deobfuscate_batch(images: list[bytes], user_id: int, prefix: str) -> 
     """批量解混淆 + 写临时文件，返回路径列表"""
     paths = []
     for i, data in enumerate(images):
+        # 查询缓存
+        cached = cache_get(data)
+        if cached is not None:
+            timestamp = time.strftime("%Y-%m-%d_%H%M%S")
+            tmp = IMAGE_DIR / f"_{prefix}_{timestamp}_{user_id}_{i}.jpg"
+            try:
+                tmp.write_bytes(cached)
+                paths.append(tmp)
+            except Exception as e:
+                logger.error(f"写入缓存结果失败: {e}")
+            continue
+
         try:
             result = await deobfuscate(data)
         except Exception as e:
             logger.error(f"解混淆失败: {e}")
             continue
+
+        # 写入缓存
+        cache_set(data, result)
 
         timestamp = time.strftime("%Y-%m-%d_%H%M%S")
         tmp = IMAGE_DIR / f"_{prefix}_{timestamp}_{user_id}_{i}.jpg"

@@ -25,7 +25,7 @@ from services.config import (
     SESSION_SCAN_INTERVAL,
 )
 from services.image_obfuscator import (
-    obfuscate, check_image_limits, precheck_limits, PIXEL_TIER_REJECT,
+    obfuscate, cache_set, check_image_limits, precheck_limits, PIXEL_TIER_REJECT,
 )
 from services.session import (
     create, get_active, complete, cancel, get_expired,
@@ -157,6 +157,7 @@ async def _handle_session_locked(bot: Bot, event: MessageEvent):
             try:
                 tmp_path.write_bytes(obfuscated_data)
                 tmp_paths.append(tmp_path)
+                cache_set(obfuscated_data, image_data)
             except Exception as e:
                 logger.error(f"写入临时文件失败: {e}")
 
