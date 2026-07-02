@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/lang/zh-CN/
 
 ---
 
+## [0.13.1] - 2026-07-02
+
+### Fixed
+
+- 群聊引用解图私信发送失败时缺少用户提示。
+
+---
+
 ## [0.13.0] - 2026-07-02
 
 ### Added

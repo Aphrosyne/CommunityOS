@@ -384,6 +384,8 @@ async def _handle_group_decode_locked(bot: Bot, event: MessageEvent):
         await bot.send_private_msg(user_id=user_id, message=msg)
     except Exception as e:
         logger.error(f"群聊引用解图私信发送失败: {e}")
+        if should_reply(user_id, "dec_send_failed"):
+            await bot.send(event, "解图图片发送失败，请稍后重试。")
     finally:
         _cleanup_tmp(tmp_paths)
 
