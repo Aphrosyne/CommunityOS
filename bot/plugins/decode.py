@@ -31,6 +31,7 @@ from services.image_obfuscator import deobfuscate
 from services.session import (
     create, get_active, complete, cancel, get_expired,
 )
+from services.permission import is_owner
 from services.throttle import should_reply
 from services.logger import get_logger
 
@@ -65,11 +66,13 @@ async def handle_decode(bot: Bot, event: MessageEvent):
         await _reply(bot, event, "请私聊发送「解图」使用此功能。", "dec_private_only")
         return
 
-    expires = _cd_expires.get(event.user_id, 0)
-    if time.time() < expires:
-        remaining = int(expires - time.time())
-        await _reply(bot, event, f"解混淆冷却中，请等待 {remaining} 秒后再试。", "dec_cooldown")
-        return
+    # 冷却检查（Owner 豁免）
+    if not is_owner(event.user_id):
+        expires = _cd_expires.get(event.user_id, 0)
+        if time.time() < expires:
+            remaining = int(expires - time.time())
+            await _reply(bot, event, f"解混淆冷却中，请等待 {remaining} 秒后再试。", "dec_cooldown")
+            return
 
     create(
         event.user_id,
@@ -95,6 +98,7 @@ register(
     "② 直接转发群里的混淆消息（检查含有混淆网址）→ 自动识别并即时返回。\n"
     "③ 群聊引用一条含图消息 + @bot 解图 → 私信返回原图。\n"
     "三种方式共用上限和冷却同上。",
+    cooldown_level=1,
 )
 
 # ── 会话消息拦截 ──
@@ -310,10 +314,11 @@ async def handle_group_decode(bot: Bot, event: MessageEvent):
 async def _handle_group_decode_locked(bot: Bot, event: MessageEvent):
     user_id = event.user_id
 
-    # 冷却检查（与解图插件共用）
-    expires = _cd_expires.get(user_id, 0)
-    if time.time() < expires:
-        return  # 静默
+    # 冷却检查（Owner 豁免）
+    if not is_owner(user_id):
+        expires = _cd_expires.get(user_id, 0)
+        if time.time() < expires:
+            return  # 静默
 
     # 提取被引用消息中的图片
     if event.reply is None:
@@ -355,10 +360,11 @@ async def _handle_group_decode_locked(bot: Bot, event: MessageEvent):
 
 async def _auto_decode(bot: Bot, event: MessageEvent):
     """私聊中检测到 IMAGE_DECODE_URL + 图片 → 即时解混淆"""
-    # 冷却检查
-    expires = _cd_expires.get(event.user_id, 0)
-    if time.time() < expires:
-        return  # 静默
+    # 冷却检查（Owner 豁免）
+    if not is_owner(event.user_id):
+        expires = _cd_expires.get(event.user_id, 0)
+        if time.time() < expires:
+            return  # 静默
 
     img_segs = [seg for seg in event.message if seg.type == "image"]
     if not img_segs:

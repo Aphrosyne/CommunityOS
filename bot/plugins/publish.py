@@ -30,6 +30,7 @@ from services.image_obfuscator import obfuscate
 from services.session import (
     Session, create, get_active, append_data, complete, cancel, get_expired,
 )
+from services.permission import is_owner
 from services.throttle import should_reply
 from services.logger import get_logger
 
@@ -68,12 +69,13 @@ async def handle_publish(bot: Bot, event: MessageEvent):
         await _reply(bot, event, "请私聊发送「发布」进行图片投稿。", "publish_private_only")
         return
 
-    # 冷却检查
-    expires = _cd_expires.get(event.user_id, 0)
-    if time.time() < expires:
-        remaining = int(expires - time.time())
-        await _reply(bot, event, f"发布冷却中，请等待 {remaining} 秒后再试。", "publish_cooldown")
-        return
+    # 冷却检查（Owner 豁免）
+    if not is_owner(event.user_id):
+        expires = _cd_expires.get(event.user_id, 0)
+        if time.time() < expires:
+            remaining = int(expires - time.time())
+            await _reply(bot, event, f"发布冷却中，请等待 {remaining} 秒后再试。", "publish_cooldown")
+            return
 
     session = create(
         event.user_id,
@@ -98,6 +100,7 @@ register(
     "私聊发送「发布」→ 进入发布模式 → 发送图片 → 发送「完成」开始发布。\n"
     "最多 10 张，3 分钟超时，发布后动态冷却。\n"
     "所有图片混淆后合并为一条消息发到指定群。",
+    cooldown_level=1,
 )
 
 # ── 会话消息拦截 ──
