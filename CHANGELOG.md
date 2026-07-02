@@ -11,6 +11,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/lang/zh-CN/
 
 ---
 
+## [0.13.2] - 2026-07-02
+
+### Changed
+
+- 发布消息新增 `[解图]` 标记，自动识别不再依赖网址。
+- 图片发送超时不再重试（`result:0` 即成功，重试会重复发送）。
+
+### Fixed
+
+- 大图发布后网址改提示语导致自动解图无法触发。
+- 群聊引用解图失败时提示添加好友。
+
+---
+
 ## [0.13.1] - 2026-07-02
 
 ### Fixed

@@ -252,7 +252,7 @@ async def _handle_session_locked(bot: Bot, event: MessageEvent):
         target_gids = session.data.get("target_group_ids", [])
         sent = 0
         try:
-            msg = MessageSegment.at(event.user_id)
+            msg = MessageSegment.text("[解图] ") + MessageSegment.at(event.user_id)
             for p in tmp_paths:
                 msg += MessageSegment.image(file=str(p.resolve()))
             if session.data.get("has_bot_only"):

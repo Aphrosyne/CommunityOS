@@ -176,7 +176,7 @@ async def _handle_session_locked(bot: Bot, event: MessageEvent):
             await bot.send(event, msg)
             sent = len(tmp_paths)
         except Exception as e:
-            logger.error(f"发送混淆图失败: {e}")
+            logger.warning(f"发送混淆图异常: {e}")
         finally:
             for p in tmp_paths:
                 try:

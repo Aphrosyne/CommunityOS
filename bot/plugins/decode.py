@@ -18,7 +18,6 @@ from PIL import Image as PILImage
 
 from services.command import register
 from services.config import (
-    IMAGE_DECODE_URL,
     IMAGE_DIR,
     PUBLISH_COOLDOWN_BASE,
     PUBLISH_COOLDOWN_MAX,
@@ -96,6 +95,7 @@ register(
     description="私聊图片解混淆",
     aliases=["解图"],
     help_text="🔓 解图 (decode | 解图)\n"
+    "建议先添加 bot 为好友，否则大概率无法收到消息（风控检测）。\n"
     "① 私聊「解图」→ 发混淆图 →「完成」→ 返回原图。\n"
     "② 直接转发群里的混淆消息（检查含有混淆网址）→ 自动识别并即时返回。\n"
     "③ 群聊引用一条含图消息 + @bot 解图 → 私信返回原图。\n"
@@ -115,8 +115,8 @@ def _decode_rule(event: MessageEvent) -> bool:
     # 命令入口
     if msg in ("解图", "decode"):
         return True
-    # 自动识别：转发 publish 消息（含 IMAGE_DECODE_URL + 图片）
-    if IMAGE_DECODE_URL and IMAGE_DECODE_URL in msg:
+    # 自动识别：转发 publish 消息（含 [解图] 标记 + 图片）
+    if "[解图]" in msg:
         return any(seg.type == "image" for seg in event.message)
     return False
 
@@ -136,7 +136,7 @@ async def _handle_session_locked(bot: Bot, event: MessageEvent):
 
     if session is None:
         # 自动识别 → 即时解混淆，不创建 session
-        if IMAGE_DECODE_URL and IMAGE_DECODE_URL in msg_text:
+        if "[解图]" in msg_text:
             await _auto_decode(bot, event)
             return
         # 命令入口 → 进入 session 模式
@@ -176,7 +176,7 @@ async def _handle_session_locked(bot: Bot, event: MessageEvent):
             await bot.send(event, msg)
             sent = len(tmp_paths)
         except Exception as e:
-            logger.error(f"发送解混淆图失败: {e}")
+            logger.warning(f"发送解混淆图异常: {e}")
         finally:
             _cleanup_tmp(tmp_paths)
 
@@ -383,9 +383,10 @@ async def _handle_group_decode_locked(bot: Bot, event: MessageEvent):
     try:
         await bot.send_private_msg(user_id=user_id, message=msg)
     except Exception as e:
-        logger.error(f"群聊引用解图私信发送失败: {e}")
+        # timeout 时 QQ 端通常已收到（result:0），不重试不提示
+        logger.warning(f"群聊引用解图私信发送异常: {e}")
         if should_reply(user_id, "dec_send_failed"):
-            await bot.send(event, "解图图片发送失败，请稍后重试。")
+            await bot.send(event, "解图图片发送失败。请先添加机器人为 QQ 好友后再试。")
     finally:
         _cleanup_tmp(tmp_paths)
 
@@ -393,7 +394,7 @@ async def _handle_group_decode_locked(bot: Bot, event: MessageEvent):
 # ── 自动解混淆（转发 publish 消息）──
 
 async def _auto_decode(bot: Bot, event: MessageEvent):
-    """私聊中检测到 IMAGE_DECODE_URL + 图片 → 即时解混淆"""
+    """私聊中检测到 [解图] 标记 + 图片 → 即时解混淆"""
     # 冷却检查（Owner 豁免）
     if not is_owner(event.user_id):
         expires = _cd_expires.get(event.user_id, 0)
