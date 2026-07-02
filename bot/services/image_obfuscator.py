@@ -13,9 +13,42 @@ import io
 import numpy as np
 from PIL import Image
 
+from services.config import IMAGE_MAX_FILE_SIZE, IMAGE_MAX_PIXELS, IMAGE_WEBSITE_MAX_PIXELS
 from services.logger import get_logger
 
 logger = get_logger("image")
+
+# 像素等级
+PIXEL_TIER_REJECT = -1   # 超过上限，拒绝
+PIXEL_TIER_BOT_ONLY = 1  # 超过网站兼容上限，仅 bot 可解
+PIXEL_TIER_NORMAL = 0    # 正常，网站兼容
+
+
+def check_image_limits(data: bytes) -> tuple[int, int, str]:
+    """检查图片大小和像素限制
+
+    Returns:
+        (tier, pixels, reason)
+        tier: PIXEL_TIER_NORMAL / PIXEL_TIER_BOT_ONLY / PIXEL_TIER_REJECT
+        pixels: 像素总数
+        reason: 拒绝原因（仅 REJECT 时有值）
+    """
+    # 文件大小检查
+    size_mb = len(data) / (1024 * 1024)
+    if size_mb > IMAGE_MAX_FILE_SIZE:
+        return (PIXEL_TIER_REJECT, 0, f"图片文件过大（{size_mb:.1f}MB > {IMAGE_MAX_FILE_SIZE}MB）")
+
+    # 像素检查
+    img = Image.open(io.BytesIO(data))
+    w, h = img.size
+    pixels = w * h
+    if pixels > IMAGE_MAX_PIXELS:
+        return (PIXEL_TIER_REJECT, pixels, f"图片分辨率过大（{w}×{h}, {pixels:,} 像素）")
+
+    if pixels > IMAGE_WEBSITE_MAX_PIXELS:
+        return (PIXEL_TIER_BOT_ONLY, pixels, "")
+
+    return (PIXEL_TIER_NORMAL, pixels, "")
 
 
 def _gilbert_coords(width: int, height: int) -> np.ndarray:

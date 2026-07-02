@@ -40,6 +40,9 @@ GREETING_REPLY = os.getenv("GREETING_REPLY", "你好呀 这里是柳千语")
 # 图片投稿
 IMAGE_SUBMIT_GROUPS: list[int] = [int(x.strip()) for x in os.getenv("IMAGE_SUBMIT_GROUPS", "").split(",") if x.strip()]
 IMAGE_DECODE_URL = os.getenv("IMAGE_DECODE_URL", "")
+IMAGE_MAX_FILE_SIZE = int(os.getenv("IMAGE_MAX_FILE_SIZE", "20"))
+IMAGE_MAX_PIXELS = int(os.getenv("IMAGE_MAX_PIXELS", "20000000"))
+IMAGE_WEBSITE_MAX_PIXELS = int(os.getenv("IMAGE_WEBSITE_MAX_PIXELS", "8000000"))
 
 # 发布模式超时
 PUBLISH_TIMEOUT = int(os.getenv("PUBLISH_TIMEOUT", "180"))

@@ -26,7 +26,7 @@ from services.config import (
     PUBLISH_TIMEOUT,
     SESSION_SCAN_INTERVAL,
 )
-from services.image_obfuscator import obfuscate
+from services.image_obfuscator import obfuscate, check_image_limits, PIXEL_TIER_REJECT, PIXEL_TIER_BOT_ONLY
 from services.session import (
     Session, create, get_active, append_data, complete, cancel, get_expired,
 )
@@ -251,7 +251,10 @@ async def _handle_session_locked(bot: Bot, event: MessageEvent):
             msg = MessageSegment.at(event.user_id)
             for p in tmp_paths:
                 msg += MessageSegment.image(file=str(p.resolve()))
-            msg += MessageSegment.text(f" {IMAGE_DECODE_URL}")
+            if session.data.get("has_bot_only"):
+                msg += MessageSegment.text(" 图片较大，仅可通过机器人解图还原。")
+            else:
+                msg += MessageSegment.text(f" {IMAGE_DECODE_URL}")
 
             for gid in target_gids:
                 await bot.send_group_msg(group_id=gid, message=msg)
@@ -312,6 +315,14 @@ async def _handle_session_locked(bot: Bot, event: MessageEvent):
             if fmt == "GIF":
                 await _reply(bot, event, "暂不支持 GIF，已跳过。", "publish_gif")
                 continue
+
+            # 大小/像素检查
+            tier, px, reason = check_image_limits(image_data)
+            if tier == PIXEL_TIER_REJECT:
+                await _reply(bot, event, reason, "publish_size")
+                continue
+            if tier == PIXEL_TIER_BOT_ONLY:
+                session.data.setdefault("has_bot_only", True)
 
             images.append(image_data)
             current += 1

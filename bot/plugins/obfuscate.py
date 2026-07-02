@@ -24,7 +24,7 @@ from services.config import (
     PUBLISH_TIMEOUT,
     SESSION_SCAN_INTERVAL,
 )
-from services.image_obfuscator import obfuscate
+from services.image_obfuscator import obfuscate, check_image_limits, PIXEL_TIER_REJECT
 from services.session import (
     create, get_active, complete, cancel, get_expired,
 )
@@ -220,6 +220,11 @@ async def _handle_session_locked(bot: Bot, event: MessageEvent):
             fmt = PILImage.open(io.BytesIO(image_data)).format
             if fmt == "GIF":
                 await _reply(bot, event, "暂不支持 GIF，已跳过。", "obf_gif")
+                continue
+
+            tier, px, reason = check_image_limits(image_data)
+            if tier == PIXEL_TIER_REJECT:
+                await _reply(bot, event, reason, "obf_size")
                 continue
 
             images.append(image_data)

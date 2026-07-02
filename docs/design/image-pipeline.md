@@ -1,7 +1,7 @@
 # Image Pipeline 图片处理流水线
 
 > **状态：** 正式
-> **版本：** v1.1
+> **版本：** v1.2
 > **最后更新：** 2026-07-02
 
 ---
@@ -49,7 +49,7 @@
 
 ---
 
-# 已实现功能（v1.1）
+# 已实现功能（v1.2）
 
 ## 发布 (publish / 发布)
 
@@ -112,6 +112,8 @@ Gilbert 曲线混淆
 整个流程中，交流群不直接接收用户原始图片。
 
 配置参数：上限 10 张，会话超时 3 分钟，动态冷却 `min(30 + 10×张数, 90)` 秒，Owner 冷却豁免。
+
+图片大小三级处理：>20MB 或 >20MP 拒绝；8~20MP 正常处理但仅可通过机器人解图；≤8MP 正常处理并附带网站解图链接。
 
 ## 混淆 (obfuscate / 混淆)
 
@@ -181,7 +183,10 @@ Gilbert 曲线混淆
 ```ini
 IMAGE_SUBMIT_GROUPS=群号1,群号2   # 已启用发布目标群（逗号分隔）
 IMAGE_DECODE_URL=...              # 在线解混淆网址
-PUBLISH_MAX_IMAGES=10           # 单次提交图片上限
+IMAGE_MAX_FILE_SIZE=20            # 单张文件大小上限（MB）
+IMAGE_MAX_PIXELS=20000000         # 单张像素上限（2000 万）
+IMAGE_WEBSITE_MAX_PIXELS=8000000  # 网站解图兼容上限（800 万）
+PUBLISH_MAX_IMAGES=10             # 单次提交图片上限
 PUBLISH_TIMEOUT=180             # 会话超时（秒）
 PUBLISH_COOLDOWN_BASE=30        # 冷却基数（秒）
 PUBLISH_COOLDOWN_PER_IMAGE=10   # 每张图片追加冷却（秒）
@@ -282,7 +287,6 @@ REPLY_THROTTLE=5                # 回复节流窗口（秒）
 
 当前版本暂未实现：
 
-* 图片预处理（格式统一 / 尺寸检查 / EXIF 剥离）
 * Discord 同步
 * 图片云存储
 * 图片审核接口

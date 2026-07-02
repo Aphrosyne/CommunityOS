@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/lang/zh-CN/
 
 ---
 
+## [0.12.0] - 2026-07-02
+
+### Added
+
+- 图片大小/像素限制：>20MB 或 >20MP 拒绝；>8MP 仅可通过机器人解图。
+- `image_obfuscator.check_image_limits()` 统一校验函数。
+
+---
+
 ## [0.11.0] - 2026-07-02
 
 ### Added
