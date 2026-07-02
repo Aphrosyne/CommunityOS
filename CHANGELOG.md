@@ -11,6 +11,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/lang/zh-CN/
 
 ---
 
+## [0.11.0] - 2026-07-02
+
+### Added
+
+- 发布多群选择：自动查询用户所在启用群，单群自动选，多群用户自选（支持多选）。
+- 指令冷却分群独立：不同群之间冷却互不影响。
+
+### Changed
+
+- `IMAGE_SUBMIT_GROUP`（单群号）→ `IMAGE_SUBMIT_GROUPS`（逗号分隔群号列表）。
+- `image-pipeline.md` v1.1：更新发布流程、配置项、基础设施。
+
+---
+
 ## [0.10.0] - 2026-07-02
 
 ### Added

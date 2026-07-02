@@ -21,8 +21,8 @@ from services.logger import get_logger
 
 logger = get_logger("command")
 
-# 冷却: {user_id: {cooldown_level: last_time}}
-_cooldowns: dict[int, dict[int, float]] = {}
+# 冷却: {(user_id, group_id): {cooldown_level: last_time}}  # group_id=0 表示私聊
+_cooldowns: dict[tuple[int, int], dict[int, float]] = {}
 
 dispatcher = on_message(rule=to_me(), priority=1, block=False)
 
@@ -36,18 +36,20 @@ async def dispatch(bot: Bot, event: MessageEvent, state: T_State):
 
     cmd_name = msg.split()[0].lower()
     user_id = event.user_id
+    group_id = getattr(event, "group_id", 0) or 0
 
     # 只处理已注册命令，未注册的静默忽略
     cmd = get_command(cmd_name)
     if cmd is None:
         return
 
-    # 冷却检查（Owner 豁免）
+    # 冷却检查（Owner 豁免，分群独立）
     if not is_owner(user_id):
         level = cmd["cooldown_level"]
         cd_seconds = COMMAND_COOLDOWNS.get(level, 5)
         now = time.time()
-        user_cd = _cooldowns.setdefault(user_id, {})
+        ck = (user_id, group_id)
+        user_cd = _cooldowns.setdefault(ck, {})
         last = user_cd.get(level, 0)
         if now - last < cd_seconds:
             return  # 冷却期静默

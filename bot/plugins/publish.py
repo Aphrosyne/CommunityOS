@@ -17,7 +17,7 @@ from PIL import Image as PILImage
 from services.command import register
 from services.config import (
     IMAGE_DIR,
-    IMAGE_SUBMIT_GROUP,
+    IMAGE_SUBMIT_GROUPS,
     IMAGE_DECODE_URL,
     PUBLISH_COOLDOWN_BASE,
     PUBLISH_COOLDOWN_MAX,
@@ -60,8 +60,38 @@ _cd_expires: dict[int, float] = {}
 # ── 命令入口 ──
 
 
+async def _get_user_groups(bot: Bot, user_id: int) -> list[tuple[int, str]]:
+    """查询用户在已启用群中的归属，返回 [(group_id, group_name), ...]"""
+    if not IMAGE_SUBMIT_GROUPS:
+        return []
+
+    try:
+        all_groups = await bot.get_group_list()
+        logger.info(f"[发布] bot 共 {len(all_groups)} 个群，已启用 {len(IMAGE_SUBMIT_GROUPS)} 个")
+    except Exception as e:
+        logger.error(f"获取群列表失败: {e}")
+        return []
+
+    # 过滤出已启用群
+    enabled = [(g["group_id"], g.get("group_name", str(g["group_id"])))
+               for g in all_groups if g["group_id"] in IMAGE_SUBMIT_GROUPS]
+    logger.info(f"[发布] 匹配启用群: {len(enabled)} 个")
+
+    # 并行检查用户归属
+    async def _in_group(gid: int, gname: str) -> tuple[int, str] | None:
+        try:
+            await bot.get_group_member_info(group_id=gid, user_id=user_id)
+            return (gid, gname)
+        except Exception:
+            return None
+
+    tasks = [_in_group(gid, gname) for gid, gname in enabled]
+    gathered = await asyncio.gather(*tasks)
+    return [r for r in gathered if r is not None]
+
+
 async def handle_publish(bot: Bot, event: MessageEvent):
-    if IMAGE_SUBMIT_GROUP == 0:
+    if not IMAGE_SUBMIT_GROUPS:
         await _reply(bot, event, "发布功能尚未配置，请联系管理员。", "publish_config")
         return
 
@@ -77,19 +107,41 @@ async def handle_publish(bot: Bot, event: MessageEvent):
             await _reply(bot, event, f"发布冷却中，请等待 {remaining} 秒后再试。", "publish_cooldown")
             return
 
+    # 查询用户所在群
+    groups = await _get_user_groups(bot, event.user_id)
+    logger.info(f"[发布] 用户 {event.user_id} 在启用群中: {len(groups)} 个")
+    if not groups:
+        await _reply(bot, event, "无法确定可发布的群，请联系管理员。", "publish_no_group")
+        return
+
+    if len(groups) == 1:
+        # 自动选择
+        gid, gname = groups[0]
+        session = create(
+            event.user_id, PUBLISH_TYPE,
+            timeout=PUBLISH_TIMEOUT,
+            initial_data={"images": [], "target_group_ids": [gid]},
+        )
+        logger.info(f"[发布] 用户 {event.user_id} → 自动选择群 {gname}({gid})")
+        await _reply(
+            bot, event,
+            f"📷 已进入发布模式，目标群：{gname}\n"
+            f"（最多 {PUBLISH_MAX_IMAGES} 张）。发送「完成」开始发布，发送「取消」退出。",
+            "publish_start",
+        )
+        return
+
+    # 多群选择
+    lines = ["📷 已进入发布模式，请选择目标群（可多选，空格分隔）："]
+    for i, (gid, gname) in enumerate(groups, 1):
+        lines.append(f"{i}. {gname}")
     session = create(
-        event.user_id,
-        PUBLISH_TYPE,
+        event.user_id, PUBLISH_TYPE,
         timeout=PUBLISH_TIMEOUT,
-        initial_data={"images": []},
+        initial_data={"images": [], "pending_groups": groups},
     )
-    logger.info(f"[发布] 用户 {event.user_id} 进入发布模式")
-    await _reply(
-        bot, event,
-        f"📷 已进入发布模式（最多 {PUBLISH_MAX_IMAGES} 张）。\n"
-        "请发送图片。发送「完成」开始发布，发送「取消」退出。",
-        "publish_start",
-    )
+    logger.info(f"[发布] 用户 {event.user_id} 待选群: {len(groups)} 个")
+    await _reply(bot, event, "\n".join(lines), "publish_choose")
 
 
 register(
@@ -133,11 +185,30 @@ async def _handle_session_locked(bot: Bot, event: MessageEvent):
         await handle_publish(bot, event)
         return
 
-    # 取消
+    # 取消（任何时候都可用）
     if msg == "取消":
         cancel(session)
         logger.info(f"[发布] 用户 {event.user_id} 取消发布")
         await _reply(bot, event, "已取消发布。", "publish_cancel")
+        return
+
+    # 群选择阶段：用户回复数字（可空格分隔多选）
+    pending = session.data.get("pending_groups")
+    if pending:
+        try:
+            idxs = [int(x) - 1 for x in msg.split()]
+            if all(0 <= i < len(pending) for i in idxs) and idxs:
+                selected = [pending[i] for i in idxs]
+                names = [n for _, n in selected]
+                gids = [g for g, _ in selected]
+                session.data.pop("pending_groups")
+                session.data["target_group_ids"] = gids
+                logger.info(f"[发布] 用户 {event.user_id} 选择群 {names}")
+                await bot.send(event, f"已选择目标群：{'、'.join(names)}\n请发送图片。发送「完成」开始发布，发送「取消」退出。")
+                return
+        except ValueError:
+            pass
+        await bot.send(event, f"请选择目标群（可多选，空格分隔）：1-{len(pending)}")
         return
 
     # 完成
@@ -173,19 +244,18 @@ async def _handle_session_locked(bot: Bot, event: MessageEvent):
             complete(session)
             return
 
-        # 合并为一条群消息
-        sent = False
+        # 合并消息发送到所有目标群
+        target_gids = session.data.get("target_group_ids", [])
+        sent = 0
         try:
             msg = MessageSegment.at(event.user_id)
             for p in tmp_paths:
                 msg += MessageSegment.image(file=str(p.resolve()))
             msg += MessageSegment.text(f" {IMAGE_DECODE_URL}")
 
-            await bot.send_group_msg(
-                group_id=IMAGE_SUBMIT_GROUP,
-                message=msg,
-            )
-            sent = True
+            for gid in target_gids:
+                await bot.send_group_msg(group_id=gid, message=msg)
+            sent = len(tmp_paths)
         except Exception as e:
             logger.error(f"发布到群失败: {e}")
         finally:
