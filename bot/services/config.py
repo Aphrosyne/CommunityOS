@@ -24,7 +24,11 @@ BACKUP_DIR.mkdir(parents=True, exist_ok=True)
 # 调试模式
 DEBUG = os.getenv("DEBUG", "false").lower() == "true"
 
-# 管理员
+# 权限（Bot Admin，非 QQ 群管理员）
+OWNER = int(os.getenv("OWNER", "0"))
+ADMINS: list[int] = [int(x.strip()) for x in os.getenv("ADMINS", "").split(",") if x.strip()]
+
+# NoneBot2 超级用户（与 Bot Admin 无关）
 SUPERUSERS: list[str] = eval(os.getenv("SUPERUSERS", "[]"))
 
 # 机器人 QQ
@@ -35,7 +39,6 @@ GREETING_REPLY = os.getenv("GREETING_REPLY", "你好呀 这里是柳千语")
 
 # 图片投稿
 IMAGE_SUBMIT_GROUP = int(os.getenv("IMAGE_SUBMIT_GROUP", "0"))
-IMAGE_COOLDOWN = int(os.getenv("IMAGE_COOLDOWN", "60"))
 IMAGE_DECODE_URL = os.getenv("IMAGE_DECODE_URL", "")
 
 # 发布模式超时

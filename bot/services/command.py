@@ -28,6 +28,7 @@ def register(
     description: str = "",
     aliases: Sequence[str] | None = None,
     help_text: str = "",
+    permission: int = 0,
 ) -> None:
     """注册命令
 
@@ -37,8 +38,12 @@ def register(
         description: 命令简短说明，help 中展示
         aliases: 别名列表（如 ["帮助"]），可选
         help_text: 详细帮助说明（如 "帮助 xxx" 时展示），可选
+        permission: 最低权限等级（0=User, 1=BotAdmin, 2=Owner），默认 0
     """
-    _commands[name] = {"handler": handler, "description": description, "help_text": help_text}
+    _commands[name] = {
+        "handler": handler, "description": description,
+        "help_text": help_text, "permission": permission,
+    }
     logger.info(f"命令已注册: {name}")
 
     if aliases:
@@ -47,18 +52,23 @@ def register(
             logger.info(f"  别名: {alias} → {name}")
 
 
-def get(name: str) -> Handler | None:
-    """查找命令处理器，支持别名"""
-    # 先查主命令，再查别名
+def get(name: str) -> dict[str, Any] | None:
+    """查找命令信息，支持别名"""
     cmd = _commands.get(name)
     if cmd:
-        return cmd["handler"]
+        return cmd
 
     real_name = _aliases.get(name)
     if real_name:
-        return _commands[real_name]["handler"]
+        return _commands[real_name]
 
     return None
+
+
+def get_handler(name: str) -> Handler | None:
+    """查找命令处理器，支持别名"""
+    cmd = get(name)
+    return cmd["handler"] if cmd else None
 
 
 def list_all() -> list[dict[str, Any]]:
@@ -71,5 +81,6 @@ def list_all() -> list[dict[str, Any]]:
             "description": info["description"],
             "aliases": cmd_aliases,
             "help_text": info.get("help_text", ""),
+            "permission": info.get("permission", 0),
         })
     return result
