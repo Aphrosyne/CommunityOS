@@ -11,6 +11,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/lang/zh-CN/
 
 ---
 
+## [0.10.0] - 2026-07-02
+
+### Added
+
+- Permission Service v1.0：三级权限（User/Admin/Owner），统一检查接口。
+- 命令权限控制：`register()` 支持 `permission` 参数，dispatcher 分发前检查。
+- 指令冷却等级：查询类 3s / 会话启动类 5s / 管理类 10s，由 `.env` 配置。
+- Owner 冷却豁免：Owner 跳过全部冷却（指令 + 业务），Admin/User 正常冷却。
+
+### Changed
+
+- 指令冷却从单一全局值改为三级配置（L0/L1/L2）。
+- `command-system.md` v1.0 正式版。
+- `permission.md` v1.0 正式版。
+
+### Removed
+
+- `IMAGE_COOLDOWN` 死配置（旧 image_submit.py 残留）。
+
+---
+
 ## [0.9.0] - 2026-07-01
 
 ### Added

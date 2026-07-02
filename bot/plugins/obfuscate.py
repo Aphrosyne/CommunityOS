@@ -28,6 +28,7 @@ from services.image_obfuscator import obfuscate
 from services.session import (
     create, get_active, complete, cancel, get_expired,
 )
+from services.permission import is_owner
 from services.throttle import should_reply
 from services.logger import get_logger
 
@@ -62,11 +63,13 @@ async def handle_obfuscate(bot: Bot, event: MessageEvent):
         await _reply(bot, event, "请私聊发送「混淆」使用此功能。", "obf_private_only")
         return
 
-    expires = _cd_expires.get(event.user_id, 0)
-    if time.time() < expires:
-        remaining = int(expires - time.time())
-        await _reply(bot, event, f"混淆冷却中，请等待 {remaining} 秒后再试。", "obf_cooldown")
-        return
+    # 冷却检查（Owner 豁免）
+    if not is_owner(event.user_id):
+        expires = _cd_expires.get(event.user_id, 0)
+        if time.time() < expires:
+            remaining = int(expires - time.time())
+            await _reply(bot, event, f"混淆冷却中，请等待 {remaining} 秒后再试。", "obf_cooldown")
+            return
 
     create(
         event.user_id,
@@ -91,6 +94,7 @@ register(
     "私聊发送「混淆」→ 进入混淆模式 → 发送图片 → 发送「完成」开始混淆。\n"
     "上限和冷却同上。\n"
     "混淆图由私聊一条消息返回，不发群。",
+    cooldown_level=1,
 )
 
 # ── 会话消息拦截 ──

@@ -30,3 +30,8 @@ def get_level(user_id: int) -> int:
 def check(user_id: int, required: int) -> bool:
     """检查用户是否满足最低权限要求"""
     return get_level(user_id) >= required
+
+
+def is_owner(user_id: int) -> bool:
+    """Owner 身份判断，用于冷却豁免等"""
+    return user_id == OWNER

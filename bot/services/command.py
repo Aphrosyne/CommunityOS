@@ -29,6 +29,7 @@ def register(
     aliases: Sequence[str] | None = None,
     help_text: str = "",
     permission: int = 0,
+    cooldown_level: int = 0,
 ) -> None:
     """注册命令
 
@@ -39,10 +40,12 @@ def register(
         aliases: 别名列表（如 ["帮助"]），可选
         help_text: 详细帮助说明（如 "帮助 xxx" 时展示），可选
         permission: 最低权限等级（0=User, 1=BotAdmin, 2=Owner），默认 0
+        cooldown_level: 冷却等级（0=查询, 1=会话启动, 2=管理），默认 0
     """
     _commands[name] = {
         "handler": handler, "description": description,
         "help_text": help_text, "permission": permission,
+        "cooldown_level": cooldown_level,
     }
     logger.info(f"命令已注册: {name}")
 

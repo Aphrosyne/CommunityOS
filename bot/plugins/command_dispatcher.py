@@ -15,14 +15,14 @@ from nonebot.adapters.onebot.v11 import Bot, MessageEvent
 from nonebot.typing import T_State
 
 from services.command import get as get_command
-from services.config import COMMAND_COOLDOWN
-from services.permission import check as check_permission
+from services.config import COMMAND_COOLDOWNS
+from services.permission import check as check_permission, is_owner
 from services.logger import get_logger
 
 logger = get_logger("command")
 
-# 冷却: {user_id: last_time}
-_cooldowns: dict[int, float] = {}
+# 冷却: {user_id: {cooldown_level: last_time}}
+_cooldowns: dict[int, dict[int, float]] = {}
 
 dispatcher = on_message(rule=to_me(), priority=1, block=False)
 
@@ -42,12 +42,16 @@ async def dispatch(bot: Bot, event: MessageEvent, state: T_State):
     if cmd is None:
         return
 
-    # 冷却检查
-    now = time.time()
-    last = _cooldowns.get(user_id, 0)
-    if now - last < COMMAND_COOLDOWN:
-        return  # 冷却期静默
-    _cooldowns[user_id] = now
+    # 冷却检查（Owner 豁免）
+    if not is_owner(user_id):
+        level = cmd["cooldown_level"]
+        cd_seconds = COMMAND_COOLDOWNS.get(level, 5)
+        now = time.time()
+        user_cd = _cooldowns.setdefault(user_id, {})
+        last = user_cd.get(level, 0)
+        if now - last < cd_seconds:
+            return  # 冷却期静默
+        user_cd[level] = now
 
     # 权限检查（Bot Admin，非 QQ 群管理员）
     if not check_permission(user_id, cmd["permission"]):
