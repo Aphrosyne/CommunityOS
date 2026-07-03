@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/lang/zh-CN/
 
 ---
 
+## [0.17.0] - 2026-07-03
+
+### Changed
+
+- 图片帮助统一至 `help.py`，三个插件不再各自维护 `help_text`。
+- 帮助参数 `帮助 图片处理` → `帮助 图片`。
+- 图片三件套增加风控/发送失败用户提示。
+
+---
+
 ## [0.16.2] - 2026-07-03
 
 ### Changed

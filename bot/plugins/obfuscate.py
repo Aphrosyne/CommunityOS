@@ -92,10 +92,6 @@ register(
     "obfuscate", handle_obfuscate,
     description="私聊图片混淆",
     aliases=["混淆"],
-    help_text="🔒 混淆 (obfuscate | 混淆)\n"
-    "私聊发送「混淆」→ 进入混淆模式 → 发送图片 → 发送「完成」开始混淆。\n"
-    "上限和冷却同上。\n"
-    "混淆图由私聊一条消息返回，不发群。",
     cooldown_level=1,
 )
 
@@ -139,7 +135,7 @@ async def _handle_session_locked(bot: Bot, event: MessageEvent):
         images = session.data.get("images", [])
         session.data["images"] = []  # 清空但保留 key，防止并发收图丢失引用
         if not images:
-            await _reply(bot, event, "尚未收到任何图片，请先发送图片。", "obf_empty")
+            await _reply(bot, event, "尚未收到图片，可能被风控，建议添加好友后重试。", "obf_empty")
             return
 
         await _reply(bot, event, f"开始处理 {len(images)} 张图片……", "obf_process")
@@ -177,6 +173,8 @@ async def _handle_session_locked(bot: Bot, event: MessageEvent):
             sent = len(tmp_paths)
         except Exception as e:
             logger.warning(f"发送混淆图异常: {e}")
+            if should_reply(event.user_id, "obf_send_failed"):
+                await bot.send(event, "发送失败，请稍后重试。")
         finally:
             for p in tmp_paths:
                 try:

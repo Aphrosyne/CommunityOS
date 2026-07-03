@@ -151,10 +151,6 @@ register(
     "publish", handle_publish,
     description="批量图片投稿",
     aliases=["发布"],
-    help_text="📷 发布 (publish | 发布)\n"
-    "私聊发送「发布」→ 进入发布模式 → 发送图片 → 发送「完成」开始发布。\n"
-    "最多 10 张，3 分钟超时，发布后动态冷却。\n"
-    "所有图片混淆后合并为一条消息发到指定群。",
     cooldown_level=1,
 )
 
@@ -220,7 +216,7 @@ async def _handle_session_locked(bot: Bot, event: MessageEvent):
         images = session.data.get("images", [])
         session.data["images"] = []  # 清空但保留 key，防止并发收图丢失引用
         if not images:
-            await _reply(bot, event, "尚未收到任何图片，请先发送图片。", "publish_empty")
+            await _reply(bot, event, "尚未收到图片，可能被风控，建议添加好友后重试。", "publish_empty")
             return
 
         await _reply(bot, event, f"开始处理 {len(images)} 张图片……", "publish_process")
