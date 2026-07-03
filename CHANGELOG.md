@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/lang/zh-CN/
 
 ---
 
+## [0.17.1] - 2026-07-03
+
+### Changed
+
+- 解图指令和帮助提示增加手机用户勾选原图提醒。
+
+---
+
 ## [0.17.0] - 2026-07-03
 
 ### Changed

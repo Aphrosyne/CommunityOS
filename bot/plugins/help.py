@@ -48,6 +48,7 @@ async def _show_list(bot: Bot, event: MessageEvent, commands: list[dict]):
 async def _show_image_help(bot: Bot, event: MessageEvent, commands: list[dict]):
     text = (
         "建议先添加机器人为好友，否则可能无法收到\发出图片。\n"
+        "手机用户私聊解图时请勾选原图，否则无法解混淆正确。\n"
         "\n"
         "📷 发布 (publish | 发布)\n"
         "私聊发送「发布」→ 进入发布模式 → 发送图片 → 发送「完成」开始发布。\n"
@@ -59,7 +60,7 @@ async def _show_image_help(bot: Bot, event: MessageEvent, commands: list[dict]):
         "上限和冷却同上。混淆图由私聊一条消息返回，不发群。\n"
         "\n"
         "🔓 解图 (decode | 解图)\n"
-        "① 私聊「解图」→ 发混淆图 →「完成」→ 返回原图。\n"
+        "① 私聊「解图」→ 上传混淆图 →「完成」→ 返回原图。\n"
         "② 直接转发群里的混淆消息 → 自动识别并即时返回。\n"
         "③ 群聊引用一条含图消息 + @bot 解图 → 私信返回原图。\n"
         "三种方式共用上限和冷却同上。"

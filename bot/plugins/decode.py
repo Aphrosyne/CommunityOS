@@ -85,7 +85,8 @@ async def handle_decode(bot: Bot, event: MessageEvent):
     await _reply(
         bot, event,
         f"📷 已进入解混淆模式（最多 {PUBLISH_MAX_IMAGES} 张）。\n"
-        "请发送图片。发送「完成」开始解混淆，发送「取消」退出。",
+        "请发送图片，手机用户请勾选原图保证解图正确。\n"
+        "发送「完成」开始解混淆，发送「取消」退出。",
         "dec_start",
     )
 
