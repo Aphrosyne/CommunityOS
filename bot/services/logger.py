@@ -24,6 +24,7 @@ DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 _DOMAIN_FILES: dict[str, str] = {
     "image": "image.log",
     "command": "command.log",
+    "relationship": "relationship.log",
 }
 
 _initialized = False
@@ -55,6 +56,9 @@ def setup_logging() -> None:
 
     # command.log（仅 command 域）
     _add_file_handler("command", "command.log")
+
+    # relationship.log（仅 relationship 域）
+    _add_file_handler("relationship", "relationship.log")
 
     # 抑制第三方噪音
     logging.getLogger("nonebot").setLevel(level)

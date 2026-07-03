@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/lang/zh-CN/
 
 ---
 
+## [0.14.0] - 2026-07-03
+
+### Added
+
+- 好友申请自动处理（`plugins/friend.py`）：验证答案匹配自动同意。
+- `relationship.log`：记录好友申请及处理结果。
+
+---
+
 ## [0.13.2] - 2026-07-02
 
 ### Changed
