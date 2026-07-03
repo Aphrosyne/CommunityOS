@@ -6,6 +6,7 @@ Message Rule Service — 群消息规则匹配与路由
 """
 from services.command import get as get_command
 from services.config import MANAGED_GROUPS
+from services.shortcut import match as shortcut_match
 
 
 def check_command(msg_type: str, group_id: int, to_me: bool, text: str) -> bool:
@@ -22,7 +23,10 @@ def check_command(msg_type: str, group_id: int, to_me: bool, text: str) -> bool:
     if group_id not in MANAGED_GROUPS:
         return False
 
-    word = text.strip().split()[0].lower() if text.strip() else ""
+    # 先查 shortcut 映射，取映射后命令的首词
+    sc = shortcut_match(text.strip(), group_id=group_id)
+    actual = sc if sc else text
+    word = actual.strip().split()[0].lower() if actual.strip() else ""
     cmd = get_command(word)
     if cmd and cmd.get("permission", 0) < 2:
         return True

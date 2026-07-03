@@ -1,6 +1,7 @@
 """
 禁言指令 - 群聊 @bot 禁言/解除禁言 @用户 [时长]
 """
+import random
 import re
 
 from nonebot.adapters.onebot.v11 import Bot, MessageEvent
@@ -109,7 +110,17 @@ async def handle_mute(bot: Bot, event: MessageEvent):
             return
 
         raw_time = msg.removeprefix("禁言").strip()
-        if not raw_time:
+
+        # 随机时长：-r min-max 或 -r（默认 1-60）
+        m = re.search(r"-r\s*(\d*)-?(\d*)", raw_time)
+        if m:
+            lo = int(m.group(1)) if m.group(1) else 1
+            hi = int(m.group(2)) if m.group(2) else 10
+            if lo > hi:
+                lo, hi = hi, lo
+            duration = random.randint(lo, hi) * 60
+
+        elif not raw_time:
             duration = 60  # 默认 1 分钟
         else:
             duration = _parse_duration(raw_time)
@@ -137,8 +148,44 @@ async def handle_mute(bot: Bot, event: MessageEvent):
         return
 
 
+async def handle_self_mute(bot: Bot, event: MessageEvent):
+    """自禁——任意用户可用，禁言自己"""
+    if event.message_type != "group":
+        return
+    group_id = event.group_id
+    operator_id = event.user_id
+    raw = event.get_plaintext().strip().removeprefix("自禁").strip()
+    if raw:
+        dur = _parse_duration(raw)
+        if dur <= 0 and raw.isdigit():
+            dur = int(raw) * 60
+        if dur > 900:
+            dur = 900  # 上限 15 分钟
+        duration = dur if dur > 0 else random.randint(1, 5) * 60
+    else:
+        duration = random.randint(1, 5) * 60
+
+    try:
+        await bot.set_group_ban(group_id=group_id, user_id=operator_id, duration=duration)
+        m_log.info(
+            f"action=mute operator={operator_id} group={group_id} "
+            f"target={operator_id} result=success duration={duration}s type=self"
+        )
+    except Exception as e:
+        m_log.info(
+            f"action=mute operator={operator_id} group={group_id} "
+            f"target={operator_id} result=failed reason={e} type=self"
+        )
+
+
 register(
     "mute", handle_mute,
     permission=1, cooldown_level=2, hidden=True,
     aliases=["禁言", "解除"],
+)
+register(
+    "self_mute", handle_self_mute,
+    description="随机自禁",
+    permission=0, cooldown_level=0,
+    aliases=["自禁"],
 )

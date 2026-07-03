@@ -33,8 +33,7 @@ async def _show_list(bot: Bot, event: MessageEvent, commands: list[dict]):
     for cmd in commands:
         if cmd.get("hidden"):
             continue
-        names = [cmd["name"], *cmd["aliases"]]
-        label = " | ".join(names)
+        label = cmd["aliases"][0] if cmd.get("aliases") else cmd["name"]
         line = label
         if cmd["description"]:
             line += f" — {cmd['description']}"

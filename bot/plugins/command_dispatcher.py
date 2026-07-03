@@ -52,7 +52,7 @@ async def dispatch(bot: Bot, event: MessageEvent, state: T_State):
     group_id = getattr(event, "group_id", 0) or 0
 
     # 快捷映射：全句匹配 → 替换指令
-    shortcut = shortcut_match(msg)
+    shortcut = shortcut_match(msg, group_id=group_id)
     if shortcut is not None:
         at_segs = [seg for seg in event.message if seg.type == "at"]
         at_target = at_segs[0].data["qq"] if at_segs else ""

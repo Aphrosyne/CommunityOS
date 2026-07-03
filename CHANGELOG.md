@@ -11,6 +11,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/lang/zh-CN/
 
 ---
 
+## [0.19.0] - 2026-07-03
+
+### Added
+
+- 快捷映射分群配置（`shortcuts.json` 支持 `"*"` + 群号）。
+- `映射` 指令：Admin 查询当前群快捷映射，QQ 号显示为群昵称。
+- 自禁指令（`自禁`）：任意用户可用，支持指定时长，上限 15 分钟。
+- 随机禁言时长（`-r` 参数）。
+- 禁言默认时长 1 分钟，别名「解除」。
+
+### Changed
+
+- 帮助命令列表只显示别名。
+- 权限拒绝静默（不回复用户）。
+- `shortcuts` / `映射` 隐藏于帮助（Admin 专用）。
+
+---
+
 ## [0.18.1] - 2026-07-03
 
 ### Changed
