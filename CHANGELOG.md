@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/lang/zh-CN/
 
 ---
 
+## [0.16.2] - 2026-07-03
+
+### Changed
+
+- 快捷映射示例增加硬编码 QQ 号格式说明。
+
+---
+
 ## [0.16.1] - 2026-07-03
 
 ### Added
