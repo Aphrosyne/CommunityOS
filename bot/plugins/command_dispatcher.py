@@ -94,7 +94,6 @@ async def dispatch(bot: Bot, event: MessageEvent, state: T_State):
             f"group={group_id} target=0 result=denied "
             f"reason=command={cmd_name} required_level={cmd['permission']}"
         )
-        await dispatcher.finish("权限不足。")
         return
 
     # 调用

@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/lang/zh-CN/
 
 ---
 
+## [0.18.1] - 2026-07-03
+
+### Changed
+
+- 权限拒绝不再回复用户提示，静默拒绝。
+
+---
+
 ## [0.18.0] - 2026-07-03
 
 ### Added
