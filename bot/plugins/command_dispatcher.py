@@ -19,6 +19,7 @@ from services.command import get as get_command
 from services.config import COMMAND_COOLDOWNS
 from services.permission import check as check_permission, is_owner
 from services.shortcut import match as shortcut_match
+from services.message_rule import check_command
 from services.logger import get_logger
 
 logger = get_logger("command")
@@ -27,7 +28,16 @@ _mod_log = get_logger("moderation")
 # 冷却: {(user_id, group_id): {cooldown_level: last_time}}  # group_id=0 表示私聊
 _cooldowns: dict[tuple[int, int], dict[int, float]] = {}
 
-dispatcher = on_message(rule=to_me(), priority=1, block=False)
+def _rule(event: MessageEvent) -> bool:
+    return check_command(
+        msg_type=event.message_type,
+        group_id=getattr(event, "group_id", 0),
+        to_me=event.to_me,
+        text=event.get_plaintext(),
+    )
+
+
+dispatcher = on_message(rule=_rule, priority=1, block=False)
 
 
 @dispatcher.handle()

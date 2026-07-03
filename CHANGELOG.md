@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/lang/zh-CN/
 
 ---
 
+## [0.18.0] - 2026-07-03
+
+### Added
+
+- Message Rule Service（`services/message_rule.py`）：统一消息规则匹配与路由。
+- 管理群内低权限命令（<2）无需 @bot 即可触发。
+- 禁言默认时长 1 分钟，别名「解除」替代「解除禁言」。
+
+---
+
 ## [0.17.1] - 2026-07-03
 
 ### Changed

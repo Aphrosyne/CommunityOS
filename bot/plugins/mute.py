@@ -75,7 +75,7 @@ async def handle_mute(bot: Bot, event: MessageEvent):
     msg = event.get_plaintext().strip()
 
     # 解除禁言
-    if msg.startswith("解除禁言"):
+    if msg.startswith("解除"):
         targets = [seg for seg in event.message if seg.type == "at"]
         if not targets:
             return
@@ -110,9 +110,9 @@ async def handle_mute(bot: Bot, event: MessageEvent):
 
         raw_time = msg.removeprefix("禁言").strip()
         if not raw_time:
-            return
-
-        duration = _parse_duration(raw_time)
+            duration = 60  # 默认 1 分钟
+        else:
+            duration = _parse_duration(raw_time)
         if duration <= 0 or duration > 30 * 86400:
             return
 
@@ -140,5 +140,5 @@ async def handle_mute(bot: Bot, event: MessageEvent):
 register(
     "mute", handle_mute,
     permission=1, cooldown_level=2, hidden=True,
-    aliases=["禁言", "解除禁言"],
+    aliases=["禁言", "解除"],
 )
