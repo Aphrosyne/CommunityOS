@@ -7,16 +7,18 @@
     - 只匹配已注册命令，未注册的忽略（无提示）
     - 30 秒全局冷却
 """
+import re
 import time
 
 from nonebot import on_message
 from nonebot.rule import to_me
-from nonebot.adapters.onebot.v11 import Bot, MessageEvent
+from nonebot.adapters.onebot.v11 import Bot, MessageEvent, MessageSegment
 from nonebot.typing import T_State
 
 from services.command import get as get_command
 from services.config import COMMAND_COOLDOWNS
 from services.permission import check as check_permission, is_owner
+from services.shortcut import match as shortcut_match
 from services.logger import get_logger
 
 logger = get_logger("command")
@@ -38,6 +40,24 @@ async def dispatch(bot: Bot, event: MessageEvent, state: T_State):
     cmd_name = msg.split()[0].lower()
     user_id = event.user_id
     group_id = getattr(event, "group_id", 0) or 0
+
+    # 快捷映射：全句匹配 → 替换指令
+    shortcut = shortcut_match(msg)
+    if shortcut is not None:
+        at_segs = [seg for seg in event.message if seg.type == "at"]
+        at_target = at_segs[0].data["qq"] if at_segs else ""
+        translated = shortcut.replace("{at}", f"[CQ:at,qq={at_target}]")
+
+        # 解析 [CQ:at,qq=xxx] → MessageSegment（逆序插入保持原文顺序）
+        parts = re.split(r"(\[CQ:at,qq=\d+\])", translated)
+        for part in reversed(parts):
+            m = re.match(r"\[CQ:at,qq=(\d+)\]", part)
+            if m:
+                event.message.insert(0, MessageSegment.at(m.group(1)))
+            elif part.strip():
+                event.message.insert(0, MessageSegment.text(part))
+
+        cmd_name = re.sub(r"\[CQ:at,qq=\d+\]", "", translated).strip().split()[0].lower()
 
     # 只处理已注册命令，未注册的静默忽略
     cmd = get_command(cmd_name)

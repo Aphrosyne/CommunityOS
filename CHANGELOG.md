@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/lang/zh-CN/
 
 ---
 
+## [0.16.1] - 2026-07-03
+
+### Added
+
+- 指令快捷映射：`bot/config/shortcuts.json`，全句 → 完整指令，支持 `{at}` 和 `[CQ:at]`。
+
+---
+
 ## [0.16.0] - 2026-07-03
 
 ### Added

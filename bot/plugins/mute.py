@@ -68,19 +68,16 @@ async def _check_bot_is_admin(bot: Bot, group_id: int) -> bool:
 async def handle_mute(bot: Bot, event: MessageEvent):
     """禁言 / 解除禁言"""
     if event.message_type != "group":
-        await bot.send(event, "禁言指令仅限群聊使用。")
         return
 
     operator_id = event.user_id
     group_id = event.group_id
-
     msg = event.get_plaintext().strip()
 
     # 解除禁言
     if msg.startswith("解除禁言"):
         targets = [seg for seg in event.message if seg.type == "at"]
         if not targets:
-            await bot.send(event, "请 @ 要解除禁言的用户。")
             return
         target_id = int(targets[0].data["qq"])
 
@@ -90,54 +87,40 @@ async def handle_mute(bot: Bot, event: MessageEvent):
                 f"action=unmute operator={operator_id} group={group_id} "
                 f"target={target_id} result=success"
             )
-            await bot.send(event, "已解除禁言。")
         except Exception as e:
             m_log.info(
                 f"action=unmute operator={operator_id} group={group_id} "
                 f"target={target_id} result=failed reason={e}"
             )
-            await bot.send(event, "解除禁言失败，请检查机器人是否有管理权限。")
         return
 
     # 禁言
     if msg.startswith("禁言"):
         targets = [seg for seg in event.message if seg.type == "at"]
         if not targets:
-            await bot.send(event, "请 @ 要禁言的用户，例如：@bot 禁言 @用户 10m")
             return
         target_id = int(targets[0].data["qq"])
 
-        # 不允许禁言 Owner
         if target_id == OWNER:
             m_log.info(
                 f"action=mute_denied operator={operator_id} group={group_id} "
                 f"target={target_id} result=denied reason=target_is_owner"
             )
-            await bot.send(event, "无法对 Owner 执行此操作。")
             return
 
-        # 解析时长
         raw_time = msg.removeprefix("禁言").strip()
         if not raw_time:
-            await bot.send(event, "请指定禁言时长，例如：@bot 禁言 @用户 10m")
             return
 
         duration = _parse_duration(raw_time)
-        if duration <= 0:
-            await bot.send(event, "无法识别的时长格式。支持：1m, 10m, 1h, 1d, 1分钟, 1小时 等")
+        if duration <= 0 or duration > 30 * 86400:
             return
 
-        if duration > 30 * 86400:
-            await bot.send(event, "禁言时长不能超过 30 天。")
-            return
-
-        # 检查机器人是否有管理权限
         if not await _check_bot_is_admin(bot, group_id):
             m_log.info(
                 f"action=mute operator={operator_id} group={group_id} "
                 f"target={target_id} result=failed reason=bot_not_admin"
             )
-            await bot.send(event, "机器人不是本群管理员，无法执行禁言操作。")
             return
 
         try:
@@ -146,16 +129,12 @@ async def handle_mute(bot: Bot, event: MessageEvent):
                 f"action=mute operator={operator_id} group={group_id} "
                 f"target={target_id} result=success duration={duration}s"
             )
-            await bot.send(event, f"已禁言 {_format_duration(duration)}。")
         except Exception as e:
             m_log.info(
                 f"action=mute operator={operator_id} group={group_id} "
                 f"target={target_id} result=failed reason={e}"
             )
-            await bot.send(event, "禁言失败，请检查机器人是否有管理权限。")
         return
-
-    # 未匹配
 
 
 register(

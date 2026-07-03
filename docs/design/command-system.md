@@ -1,8 +1,8 @@
 # 指令系统 Command System
 
 > **状态：** 正式
-> **版本：** v1.0
-> **最后更新：** 2026-07-02
+> **版本：** v1.1
+> **最后更新：** 2026-07-03
 
 ---
 
@@ -106,6 +106,25 @@ register("help", handle_help, description="显示帮助信息", aliases=["帮助
 ```
 
 `help` 和 `帮助` 均触发同一处理器。
+
+---
+
+### 指令快捷映射
+
+通过 `bot/config/shortcuts.json` 支持全句到完整指令的映射（gitignored）：
+
+```json
+{
+  "关一下": "禁言 {at} 1m",
+  "关憨批": "禁言 [CQ:at,qq=QQ号] 1m"
+}
+```
+
+`@bot 关一下 @用户` → 自动展开为 `禁言 @用户 1m`。
+
+`{at}` 会被替换为消息中第一个 @ 目标的 QQ 号。`[CQ:at,qq=xxx]` 写死了固定目标。
+
+映射在命令解析之前执行，对用户透明。
 
 ---
 
@@ -217,7 +236,7 @@ register("status", handle_status, description="查看系统运行状态")
 
 ---
 
-## 11. 已实现（v1.0）
+## 11. 已实现（v1.1）
 
 | 组件 | 文件 |
 |------|------|
@@ -226,6 +245,7 @@ register("status", handle_status, description="查看系统运行状态")
 | `/help` | `plugins/help.py` |
 | `/status` | `plugins/status.py` |
 | 权限服务 | `services/permission.py` |
+| 指令快捷映射 | `services/shortcut.py` + `bot/config/shortcuts.json` |
 
 配置项：
 

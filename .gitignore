@@ -9,6 +9,7 @@ venv/
 # Bot runtime
 bot/.env
 bot/config/*.local.*
+bot/config/shortcuts.json
 bot/data/
 bot/logs/
 
