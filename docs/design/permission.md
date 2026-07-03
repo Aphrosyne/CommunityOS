@@ -242,7 +242,13 @@ Admin 与 User 均遵循正常冷却规则。
 
 ### 日志服务
 
-权限检查结果和权限拒绝事件可记录到 `command.log`。
+权限拒绝事件记录到 `moderation.log`，格式如下：
+
+```text
+action=permission_denied operator=<user_id> group=<group_id> target=0 result=denied reason=command=<name> required_level=<level>
+```
+
+权限检查成功的事件不单独记录（由 `command.log` 记录命令执行）。
 
 当前版本不单独创建 `permission.log`。
 

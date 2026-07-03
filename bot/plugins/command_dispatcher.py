@@ -20,6 +20,7 @@ from services.permission import check as check_permission, is_owner
 from services.logger import get_logger
 
 logger = get_logger("command")
+_mod_log = get_logger("moderation")
 
 # 冷却: {(user_id, group_id): {cooldown_level: last_time}}  # group_id=0 表示私聊
 _cooldowns: dict[tuple[int, int], dict[int, float]] = {}
@@ -58,6 +59,11 @@ async def dispatch(bot: Bot, event: MessageEvent, state: T_State):
     # 权限检查（Bot Admin，非 QQ 群管理员）
     if not check_permission(user_id, cmd["permission"]):
         logger.info(f"用户 {user_id} 权限不足，拒绝执行 {cmd_name} (需要 {cmd['permission']})")
+        _mod_log.info(
+            f"action=permission_denied operator={user_id} "
+            f"group={group_id} target=0 result=denied "
+            f"reason=command={cmd_name} required_level={cmd['permission']}"
+        )
         await dispatcher.finish("权限不足。")
         return
 

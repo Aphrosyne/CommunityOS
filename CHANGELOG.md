@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/lang/zh-CN/
 
 ---
 
+## [0.15.1] - 2026-07-03
+
+### Added
+
+- `moderation.log`：管理员操作审计日志，当前记录权限拒绝事件。
+
+---
+
 ## [0.15.0] - 2026-07-03
 
 ### Added
