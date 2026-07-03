@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/lang/zh-CN/
 
 ---
 
+## [0.15.0] - 2026-07-03
+
+### Added
+
+- 群成员变更日志（`plugins/member.py`）：入群/退群/被踢写入 `member.log`。
+- `IMAGE_SUBMIT_GROUPS` 升级为 `MANAGED_GROUPS`，供所有插件共用。
+
+---
+
 ## [0.14.0] - 2026-07-03
 
 ### Added

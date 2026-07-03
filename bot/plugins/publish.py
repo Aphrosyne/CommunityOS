@@ -17,7 +17,7 @@ from PIL import Image as PILImage
 from services.command import register
 from services.config import (
     IMAGE_DIR,
-    IMAGE_SUBMIT_GROUPS,
+    MANAGED_GROUPS,
     IMAGE_DECODE_URL,
     PUBLISH_COOLDOWN_BASE,
     PUBLISH_COOLDOWN_MAX,
@@ -65,19 +65,19 @@ _cd_expires: dict[int, float] = {}
 
 async def _get_user_groups(bot: Bot, user_id: int) -> list[tuple[int, str]]:
     """查询用户在已启用群中的归属，返回 [(group_id, group_name), ...]"""
-    if not IMAGE_SUBMIT_GROUPS:
+    if not MANAGED_GROUPS:
         return []
 
     try:
         all_groups = await bot.get_group_list()
-        logger.info(f"[发布] bot 共 {len(all_groups)} 个群，已启用 {len(IMAGE_SUBMIT_GROUPS)} 个")
+        logger.info(f"[发布] bot 共 {len(all_groups)} 个群，已启用 {len(MANAGED_GROUPS)} 个")
     except Exception as e:
         logger.error(f"获取群列表失败: {e}")
         return []
 
     # 过滤出已启用群
     enabled = [(g["group_id"], g.get("group_name", str(g["group_id"])))
-               for g in all_groups if g["group_id"] in IMAGE_SUBMIT_GROUPS]
+               for g in all_groups if g["group_id"] in MANAGED_GROUPS]
     logger.info(f"[发布] 匹配启用群: {len(enabled)} 个")
 
     # 并行检查用户归属
@@ -94,7 +94,7 @@ async def _get_user_groups(bot: Bot, user_id: int) -> list[tuple[int, str]]:
 
 
 async def handle_publish(bot: Bot, event: MessageEvent):
-    if not IMAGE_SUBMIT_GROUPS:
+    if not MANAGED_GROUPS:
         await _reply(bot, event, "发布功能尚未配置，请联系管理员。", "publish_config")
         return
 

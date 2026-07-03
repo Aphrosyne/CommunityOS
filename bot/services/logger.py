@@ -25,6 +25,7 @@ _DOMAIN_FILES: dict[str, str] = {
     "image": "image.log",
     "command": "command.log",
     "relationship": "relationship.log",
+    "member": "member.log",
 }
 
 _initialized = False
@@ -59,6 +60,9 @@ def setup_logging() -> None:
 
     # relationship.log（仅 relationship 域）
     _add_file_handler("relationship", "relationship.log")
+
+    # member.log（仅 member 域）
+    _add_file_handler("member", "member.log")
 
     # 抑制第三方噪音
     logging.getLogger("nonebot").setLevel(level)

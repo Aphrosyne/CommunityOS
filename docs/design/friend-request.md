@@ -6,7 +6,7 @@
 
 ---
 
-# 1. 背景
+## 1. 背景
 
 CommunityOS 的图片处理功能包含混淆、发布和解图。
 
@@ -18,7 +18,7 @@ QQ 的自动同意好友机制可能只形成单向好友关系。只有机器�
 
 ---
 
-# 2. 目标
+## 2. 目标
 
 本模块的目标是：
 
@@ -30,7 +30,7 @@ QQ 的自动同意好友机制可能只形成单向好友关系。只有机器�
 
 ---
 
-# 3. 非目标
+## 3. 非目标
 
 本模块当前不负责：
 
@@ -49,7 +49,7 @@ QQ 的自动同意好友机制可能只形成单向好友关系。只有机器�
 
 ---
 
-# 4. 模块边界
+## 4. 模块边界
 
 建议实现为独立插件：
 
@@ -76,7 +76,7 @@ plugins/
 
 ---
 
-# 5. 处理流程
+## 5. 处理流程
 
 ```text
 用户发送好友申请
@@ -96,7 +96,7 @@ plugins/
 
 ---
 
-# 6. 初始处理规则
+## 6. 初始处理规则
 
 第一版采用默认自动同意策略。
 
@@ -113,7 +113,7 @@ plugins/
 
 ---
 
-# 7. 黑名单与白名单
+## 7. 黑名单与白名单
 
 初始版本通过 `.env` 配置名单。
 
@@ -144,7 +144,7 @@ FRIEND_REQUEST_WHITELIST=
 
 ---
 
-# 8. 去重机制
+## 8. 去重机制
 
 好友申请事件可能重复投递，或用户可能短时间内多次发送申请。
 
@@ -167,7 +167,7 @@ FRIEND_REQUEST_DEDUP_SECONDS=300
 
 ---
 
-# 9. 日志
+## 9. 日志
 
 好友申请不属于群成员生命周期，因此不写入 `member.log`。
 
@@ -212,7 +212,7 @@ event=friend_request_failed user_id=123456 reason=adapter_not_supported
 
 ---
 
-# 10. 平台适配
+## 10. 平台适配
 
 不同 QQ / OneBot 实现对好友申请事件和处理动作的支持可能不同。
 
@@ -234,7 +234,7 @@ event=friend_request_failed user_id=123456 reason=adapter_not_supported
 
 ---
 
-# 11. 权限
+## 11. 权限
 
 好友申请处理不需要普通群管理员参与。
 
@@ -249,9 +249,9 @@ event=friend_request_failed user_id=123456 reason=adapter_not_supported
 
 ---
 
-# 12. 与其他模块的关系
+## 12. 与其他模块的关系
 
-## 图片插件
+### 图片插件
 
 好友申请模块不直接调用图片插件。
 
@@ -259,7 +259,7 @@ event=friend_request_failed user_id=123456 reason=adapter_not_supported
 
 ---
 
-## Permission Service
+### Permission Service
 
 好友申请处理本身不依赖群权限。
 
@@ -267,7 +267,7 @@ Owner 对配置修改和后续管理指令的权限检查由 Permission Service 
 
 ---
 
-## Logger Service
+### Logger Service
 
 `relationship.log` 由 Logger Service 创建和管理。
 
@@ -275,7 +275,7 @@ Owner 对配置修改和后续管理指令的权限检查由 Permission Service 
 
 ---
 
-## Cache Service
+### Cache Service
 
 好友申请处理不依赖 Cache Service。
 
@@ -283,7 +283,7 @@ Owner 对配置修改和后续管理指令的权限检查由 Permission Service 
 
 ---
 
-# 13. 错误处理
+## 13. 错误处理
 
 处理原则：
 
@@ -295,7 +295,7 @@ Owner 对配置修改和后续管理指令的权限检查由 Permission Service 
 
 ---
 
-# 14. 后续扩展
+## 14. 后续扩展
 
 以下能力不属于当前版本，但可以在未来加入：
 
@@ -310,7 +310,7 @@ Owner 对配置修改和后续管理指令的权限检查由 Permission Service 
 
 ---
 
-# 15. 总结
+## 15. 总结
 
 好友申请处理模块的定位是私聊入口管理，而不是社区成员审核系统。
 

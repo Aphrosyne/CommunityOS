@@ -6,7 +6,7 @@
 
 ---
 
-# 1. 目的
+## 1. 目的
 
 Cache Service 为 CommunityOS 提供统一的本地文件缓存能力。
 
@@ -18,7 +18,7 @@ Cache Service 为 CommunityOS 提供统一的本地文件缓存能力。
 
 ---
 
-# 2. 当前范围
+## 2. 当前范围
 
 当前 Cache Service 只缓存图片解混淆结果。
 
@@ -36,33 +36,33 @@ Cache Service 为 CommunityOS 提供统一的本地文件缓存能力。
 
 ---
 
-# 3. 设计原则
+## 3. 设计原则
 
-## 结果缓存
+### 结果缓存
 
 缓存的对象是已完成处理的图片文件。缓存命中后直接复用结果，不重复执行解混淆算法。
 
 ---
 
-## 内容寻址
+### 内容寻址
 
 缓存键基于混淆图内容的 MD5 哈希生成。同一张图片即使来源不同，只要内容相同均可命中。
 
 ---
 
-## 单方向缓存
+### 单方向缓存
 
 当前仅缓存解混淆方向：`MD5(混淆图) → 原图`。混淆不单独缓存——混淆的一对一场景收益小，且解混淆端写入已覆盖。
 
 ---
 
-## 缓存可失效
+### 缓存可失效
 
 缓存仅是性能优化，不是业务正确性的唯一来源。缺失、损坏或读取失败时回退正常处理。
 
 ---
 
-# 4. 缓存目录
+## 4. 缓存目录
 
 当前图片缓存目录为：
 
@@ -84,7 +84,7 @@ data/
 
 ---
 
-# 5. 缓存键
+## 5. 缓存键
 
 图片缓存键为混淆图内容的 MD5 哈希，加 `.jpg` 后缀作为文件名：
 
@@ -96,13 +96,13 @@ data/
 
 ---
 
-# 6. 图片流水线集成
+## 6. 图片流水线集成
 
-## 写入（publish / obfuscate）
+### 写入（publish / obfuscate）
 
 混淆完成后调用 `cache_set(obfuscated_data, original_data)`，将原图写入缓存。
 
-## 读取（decode）
+### 读取（decode）
 
 解混淆前调用 `cache_get(obfuscated_data)` 查询缓存，命中则直接返回原图，跳过 `deobfuscate()`。未命中则正常执行解混淆，成功后调用 `cache_set(obfuscated_data, result)` 写入缓存供后续复用。
 
@@ -120,7 +120,7 @@ data/
 
 ---
 
-# 7. 清理与淘汰
+## 7. 清理与淘汰
 
 当前采用基于文件修改时间的最旧文件优先淘汰策略，总大小由 `IMAGE_CACHE_MAX_MB` 限制（默认 500MB）。
 
@@ -128,7 +128,7 @@ data/
 
 ---
 
-# 8. 日志
+## 8. 日志
 
 Cache Service 不单独创建日志文件。缓存事件由调用方写入对应业务日志。
 
@@ -148,7 +148,7 @@ Cache Service 不单独创建日志文件。缓存事件由调用方写入对应
 
 ---
 
-# 9. 错误处理
+## 9. 错误处理
 
 缓存错误不得阻断图片主流程。
 
@@ -158,21 +158,21 @@ Cache Service 不单独创建日志文件。缓存事件由调用方写入对应
 
 ---
 
-# 10. 与其他服务的关系
+## 10. 与其他服务的关系
 
-## Logger Service
+### Logger Service
 
 缓存服务自身的异常通过 Logger Service 以 debug 级别输出。
 
 图片缓存命中、写入等业务事件由 `image_obfuscator.py` 中的 `cache_get` / `cache_set` 写入 `image.log`。
 
-## Image Obfuscator Service
+### Image Obfuscator Service
 
 `image_obfuscator.py` 持有 `FileCache` 实例并暴露 `cache_get` / `cache_set` 函数。`obfuscate` / `deobfuscate` 不直接涉及缓存逻辑。
 
 ---
 
-# 11. 当前版本不包含
+## 11. 当前版本不包含
 
 当前 Cache Service 不包含：
 
@@ -192,7 +192,7 @@ Cache Service 不单独创建日志文件。缓存事件由调用方写入对应
 
 ---
 
-# 12. 总结
+## 12. 总结
 
 Cache Service 通过缓存图片解混淆结果，减少重复解混淆的计算开销。
 

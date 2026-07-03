@@ -38,7 +38,7 @@ BOT_QQ = int(os.getenv("BOT_QQ", "0"))
 GREETING_REPLY = os.getenv("GREETING_REPLY", "你好呀 这里是柳千语")
 
 # 图片投稿
-IMAGE_SUBMIT_GROUPS: list[int] = [int(x.strip()) for x in os.getenv("IMAGE_SUBMIT_GROUPS", "").split(",") if x.strip()]
+MANAGED_GROUPS: list[int] = [int(x.strip()) for x in os.getenv("MANAGED_GROUPS", "").split(",") if x.strip()]
 IMAGE_DECODE_URL = os.getenv("IMAGE_DECODE_URL", "")
 IMAGE_MAX_FILE_SIZE = int(os.getenv("IMAGE_MAX_FILE_SIZE", "20"))
 FRIEND_VERIFY_ANSWER = os.getenv("FRIEND_VERIFY_ANSWER", "")

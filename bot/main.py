@@ -38,6 +38,7 @@ nonebot.load_plugin("plugins.publish")
 nonebot.load_plugin("plugins.obfuscate")
 nonebot.load_plugin("plugins.decode")
 nonebot.load_plugin("plugins.friend")
+nonebot.load_plugin("plugins.member")
 # TODO: 后续改为 load_plugins("plugins") 自动扫描所有插件
 
 # --- 启动时打印已加载插件 ---
