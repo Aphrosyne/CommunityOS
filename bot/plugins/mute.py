@@ -4,10 +4,10 @@
 import random
 import re
 
-from nonebot.adapters.onebot.v11 import Bot, MessageEvent
+from nonebot.adapters.onebot.v11 import Bot, MessageEvent, MessageSegment
 
 from services.command import register
-from services.config import OWNER
+from services.config import OWNER, SELF_MUTE_REPLIES
 from services.logger import get_logger
 
 m_log = get_logger("moderation")
@@ -159,8 +159,8 @@ async def handle_self_mute(bot: Bot, event: MessageEvent):
         dur = _parse_duration(raw)
         if dur <= 0 and raw.isdigit():
             dur = int(raw) * 60
-        if dur > 900:
-            dur = 900  # 上限 15 分钟
+        if dur > 3600:
+            dur = 3600  # 上限 60 分钟
         duration = dur if dur > 0 else random.randint(1, 5) * 60
     else:
         duration = random.randint(1, 5) * 60
@@ -171,6 +171,9 @@ async def handle_self_mute(bot: Bot, event: MessageEvent):
             f"action=mute operator={operator_id} group={group_id} "
             f"target={operator_id} result=success duration={duration}s type=self"
         )
+        if SELF_MUTE_REPLIES:
+            msg = MessageSegment.at(operator_id) + MessageSegment.text(random.choice(SELF_MUTE_REPLIES))
+            await bot.send(event, msg)
     except Exception as e:
         m_log.info(
             f"action=mute operator={operator_id} group={group_id} "

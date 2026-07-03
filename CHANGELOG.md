@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/lang/zh-CN/
 
 ---
 
+## [0.19.1] - 2026-07-03
+
+### Added
+
+- 自禁成功回复随机语句（`SELF_MUTE_REPLIES`，`.env` 配置，管道符分隔），@用户后发送。
+
+---
+
 ## [0.19.0] - 2026-07-03
 
 ### Added

@@ -42,6 +42,7 @@ MANAGED_GROUPS: list[int] = [int(x.strip()) for x in os.getenv("MANAGED_GROUPS",
 IMAGE_DECODE_URL = os.getenv("IMAGE_DECODE_URL", "")
 IMAGE_MAX_FILE_SIZE = int(os.getenv("IMAGE_MAX_FILE_SIZE", "20"))
 FRIEND_VERIFY_ANSWER = os.getenv("FRIEND_VERIFY_ANSWER", "")
+SELF_MUTE_REPLIES = [x.strip() for x in os.getenv("SELF_MUTE_REPLIES", "").split("|") if x.strip()]
 IMAGE_CACHE_MAX_MB = int(os.getenv("IMAGE_CACHE_MAX_MB", "500"))
 IMAGE_MAX_PIXELS = int(os.getenv("IMAGE_MAX_PIXELS", "20000000"))
 IMAGE_WEBSITE_MAX_PIXELS = int(os.getenv("IMAGE_WEBSITE_MAX_PIXELS", "8000000"))
