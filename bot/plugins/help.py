@@ -31,6 +31,8 @@ async def handle_help(bot: Bot, event: MessageEvent):
 async def _show_list(bot: Bot, event: MessageEvent, commands: list[dict]):
     lines = ["可用命令：", ""]
     for cmd in commands:
+        if cmd.get("hidden"):
+            continue
         names = [cmd["name"], *cmd["aliases"]]
         label = " | ".join(names)
         line = label

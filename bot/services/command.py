@@ -30,6 +30,7 @@ def register(
     help_text: str = "",
     permission: int = 0,
     cooldown_level: int = 0,
+    hidden: bool = False,
 ) -> None:
     """注册命令
 
@@ -41,11 +42,12 @@ def register(
         help_text: 详细帮助说明（如 "帮助 xxx" 时展示），可选
         permission: 最低权限等级（0=User, 1=BotAdmin, 2=Owner），默认 0
         cooldown_level: 冷却等级（0=查询, 1=会话启动, 2=管理），默认 0
+        hidden: 是否在 help 中隐藏，默认 False
     """
     _commands[name] = {
         "handler": handler, "description": description,
         "help_text": help_text, "permission": permission,
-        "cooldown_level": cooldown_level,
+        "cooldown_level": cooldown_level, "hidden": hidden,
     }
     logger.info(f"命令已注册: {name}")
 
@@ -85,5 +87,6 @@ def list_all() -> list[dict[str, Any]]:
             "aliases": cmd_aliases,
             "help_text": info.get("help_text", ""),
             "permission": info.get("permission", 0),
+            "hidden": info.get("hidden", False),
         })
     return result

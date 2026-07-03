@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/lang/zh-CN/
 
 ---
 
+## [0.16.0] - 2026-07-03
+
+### Added
+
+- 禁言指令（`plugins/mute.py`）：`@bot 禁言 @用户 时长` / `@bot 解除禁言 @用户`。
+- 时长支持中英文混合：1m/10m/1h/1d/1分钟/1小时/1m30s。
+- `register()` 新增 `hidden` 参数，禁言等管理指令不出现在 help 中。
+
+---
+
 ## [0.15.1] - 2026-07-03
 
 ### Added
