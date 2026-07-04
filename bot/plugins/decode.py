@@ -12,7 +12,6 @@ from pathlib import Path
 import httpx
 import nonebot
 from nonebot import on_message
-from nonebot.rule import to_me
 from nonebot.adapters.onebot.v11 import Bot, MessageEvent, MessageSegment
 from PIL import Image as PILImage
 
@@ -331,7 +330,7 @@ def _group_reply_rule(event: MessageEvent) -> bool:
     return event.get_plaintext().strip() in ("解图", "decode")
 
 
-group_decode = on_message(rule=to_me() & _group_reply_rule, priority=0, block=True)
+group_decode = on_message(rule=_group_reply_rule, priority=0, block=True)
 
 
 @group_decode.handle()

@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/lang/zh-CN/
 
 ---
 
+## [1.0.1] - 2026-07-04
+
+### Fixed
+
+- 群聊引用消息自动填入 @发送者后「解图」无法触发（移除 `to_me()` 要求，有回复即匹配）。
+- 部署文档 NapCat 配置拆分为 URL 和 Token 两个字段。
+
+---
+
 ## [1.0.0] - 2026-07-04
 
 ### Added
