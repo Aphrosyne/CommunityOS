@@ -32,3 +32,49 @@ def check_command(msg_type: str, group_id: int, to_me: bool, text: str) -> bool:
         return True
 
     return False
+
+
+# ── 违禁词 ──
+
+import json  # noqa: E402
+from pathlib import Path  # noqa: E402
+
+_KEYWORDS_PATH = Path(__file__).resolve().parent.parent / "config" / "keywords.json"
+_keywords: dict[str, list[str]] = {}
+
+
+def _load_keywords() -> None:
+    global _keywords
+    try:
+        if _KEYWORDS_PATH.exists():
+            _keywords = json.loads(_KEYWORDS_PATH.read_text(encoding="utf-8"))
+        else:
+            _keywords = {}
+    except Exception:
+        _keywords = {}
+
+
+def check_keywords(group_id: int, text: str) -> list[str]:
+    """返回命中的违禁词列表。先查群专属，再查全局 *"""
+    hits = []
+    gid = str(group_id)
+    for kw in _keywords.get(gid, []):
+        if kw in text:
+            hits.append(kw)
+    for kw in _keywords.get("*", []):
+        if kw not in hits and kw in text:
+            hits.append(kw)
+    return hits
+
+
+def list_keywords(group_id: int) -> list[str]:
+    """返回该群的关键词列表（群专属 + 全局去重）"""
+    gid = str(group_id)
+    all_kw = list(_keywords.get("*", []))
+    for kw in _keywords.get(gid, []):
+        if kw not in all_kw:
+            all_kw.append(kw)
+    return all_kw
+
+
+_load_keywords()

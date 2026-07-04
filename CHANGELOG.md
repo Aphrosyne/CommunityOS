@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/lang/zh-CN/
 
 ---
 
+## [0.20.0] - 2026-07-04
+
+### Added
+
+- 违禁词自动撤回（`plugins/auto_recall.py`）：管理群内命中关键词自动删除。
+- 违禁词分群配置（`keywords.json`，支持 `*` 全局 + 群号专属）。
+- `违禁词` 查询指令：Admin 列出当前群关键词。
+- Message Rule Service 设计文档（`message-rule-service.md` v1.0）。
+
+---
+
 ## [0.19.1] - 2026-07-03
 
 ### Added

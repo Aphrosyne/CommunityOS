@@ -10,6 +10,7 @@ venv/
 bot/.env
 bot/config/*.local.*
 bot/config/shortcuts.json
+bot/config/keywords.json
 bot/data/
 bot/logs/
 
