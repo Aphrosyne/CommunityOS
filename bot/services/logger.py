@@ -69,9 +69,24 @@ def setup_logging() -> None:
     _add_file_handler("moderation", "moderation.log")
 
     # 抑制第三方噪音
-    logging.getLogger("nonebot").setLevel(level)
+    logging.getLogger("nonebot").setLevel(logging.WARNING)
     logging.getLogger("websockets").setLevel(logging.WARNING)
     logging.getLogger("apscheduler").setLevel(logging.WARNING)
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("httpcore").setLevel(logging.WARNING)
+
+    # NoneBot2 使用 loguru，单独设置
+    try:
+        from loguru import logger as loguru_logger
+        from services.config import DEBUG_NONEBOT
+        loguru_logger.remove()
+        loguru_logger.add(
+            sys.stdout,
+            format="{time:YYYY-MM-DD HH:mm:ss} [{level}] [nonebot] {message}",
+            level="INFO" if DEBUG_NONEBOT else "SUCCESS",
+        )
+    except Exception:
+        pass
 
     logging.getLogger(__name__).info("日志系统已初始化")
 

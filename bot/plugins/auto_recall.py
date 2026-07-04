@@ -1,4 +1,6 @@
 """违禁词自动撤回 + 关键词查询"""
+import time
+
 from nonebot import on_message
 from nonebot.adapters.onebot.v11 import Bot, MessageEvent
 
@@ -9,6 +11,10 @@ from services.permission import is_owner
 from services.logger import get_logger
 
 m_log = get_logger("moderation")
+
+# 每群每用户 5 秒冷却
+_recall_cd: dict[tuple[int, int], float] = {}
+RECALL_CD = 5
 
 
 async def handle_keywords(bot: Bot, event: MessageEvent):
@@ -44,6 +50,13 @@ async def handle_auto_mod(bot: Bot, event: MessageEvent):
 
     if is_owner(event.user_id):
         return
+
+    # 冷却检查
+    now = time.time()
+    ck = (group_id, event.user_id)
+    if now - _recall_cd.get(ck, 0) < RECALL_CD:
+        return
+    _recall_cd[ck] = now
 
     text = event.get_plaintext()
     hits = check_keywords(group_id, text)

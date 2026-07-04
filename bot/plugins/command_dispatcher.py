@@ -58,16 +58,22 @@ async def dispatch(bot: Bot, event: MessageEvent, state: T_State):
         at_target = at_segs[0].data["qq"] if at_segs else ""
         translated = shortcut.replace("{at}", f"[CQ:at,qq={at_target}]")
 
-        # 解析 [CQ:at,qq=xxx] → MessageSegment（逆序插入保持原文顺序）
+        # 解析 [CQ:at,qq=xxx] → MessageSegment，替换 event.message
         parts = re.split(r"(\[CQ:at,qq=\d+\])", translated)
-        for part in reversed(parts):
+        new_msg = []
+        for part in parts:
             m = re.match(r"\[CQ:at,qq=(\d+)\]", part)
             if m:
-                event.message.insert(0, MessageSegment.at(m.group(1)))
+                new_msg.append(MessageSegment.at(m.group(1)))
             elif part.strip():
-                event.message.insert(0, MessageSegment.text(part))
+                new_msg.append(MessageSegment.text(part))
+        event.message.clear()
+        event.message.extend(new_msg)
 
-        cmd_name = re.sub(r"\[CQ:at,qq=\d+\]", "", translated).strip().split()[0].lower()
+        words = re.sub(r"\[CQ:at,qq=\d+\]", "", translated).strip().split()
+        cmd_name = words[0].lower() if words else ""
+        if not cmd_name:
+            return
 
     # 只处理已注册命令，未注册的静默忽略
     cmd = get_command(cmd_name)

@@ -23,13 +23,15 @@ BACKUP_DIR.mkdir(parents=True, exist_ok=True)
 
 # 调试模式
 DEBUG = os.getenv("DEBUG", "false").lower() == "true"
+DEBUG_NONEBOT = os.getenv("DEBUG_NONEBOT", "false").lower() == "true"
 
 # 权限（Bot Admin，非 QQ 群管理员）
 OWNER = int(os.getenv("OWNER", "0"))
 ADMINS: list[int] = [int(x.strip()) for x in os.getenv("ADMINS", "").split(",") if x.strip()]
 
 # NoneBot2 超级用户（与 Bot Admin 无关）
-SUPERUSERS: list[str] = eval(os.getenv("SUPERUSERS", "[]"))
+import json  # noqa: E402
+SUPERUSERS: list[str] = json.loads(os.getenv("SUPERUSERS", "[]"))
 
 # 机器人 QQ
 BOT_QQ = int(os.getenv("BOT_QQ", "0"))

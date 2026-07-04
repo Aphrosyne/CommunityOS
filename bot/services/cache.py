@@ -6,6 +6,7 @@ Cache Service — 通用文件缓存
 
 日志由调用方负责——缓存服务自身不记录普通事件。
 """
+import asyncio
 import os
 import time
 from pathlib import Path
@@ -23,24 +24,24 @@ class FileCache:
         self._name = name
         self._dir.mkdir(parents=True, exist_ok=True)
 
-    def get(self, key: str) -> bytes | None:
-        """查缓存"""
+    async def get(self, key: str) -> bytes | None:
+        """查缓存（异步 I/O）"""
         try:
             path = self._dir / key
             if path.exists():
                 os.utime(path, (time.time(), time.time()))
-                return path.read_bytes()
+                return await asyncio.to_thread(path.read_bytes)
         except Exception as e:
             _log.debug(f"[{self._name}] 读取缓存异常: {e}")
         return None
 
-    def set(self, key: str, value: bytes) -> None:
-        """写缓存，超限时淘汰最旧文件"""
+    async def set(self, key: str, value: bytes) -> None:
+        """写缓存（异步 I/O），超限时淘汰最旧文件"""
         try:
             path = self._dir / key
             if path.exists():
                 return
-            path.write_bytes(value)
+            await asyncio.to_thread(path.write_bytes, value)
             self._evict()
         except Exception as e:
             _log.debug(f"[{self._name}] 写入缓存异常: {e}")

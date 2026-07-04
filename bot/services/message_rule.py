@@ -7,6 +7,7 @@ Message Rule Service — 群消息规则匹配与路由
 from services.command import get as get_command
 from services.config import MANAGED_GROUPS
 from services.shortcut import match as shortcut_match
+from services.logger import get_logger
 
 
 def check_command(msg_type: str, group_id: int, to_me: bool, text: str) -> bool:
@@ -50,7 +51,9 @@ def _load_keywords() -> None:
             _keywords = json.loads(_KEYWORDS_PATH.read_text(encoding="utf-8"))
         else:
             _keywords = {}
-    except Exception:
+    except Exception as e:
+        log = get_logger("bot")
+        log.error(f"加载 keywords.json 失败: {e}")
         _keywords = {}
 
 

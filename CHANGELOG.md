@@ -11,7 +11,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/lang/zh-CN/
 
 ---
 
-## [0.20.1] - 2026-07-04
+## [0.21.0] - 2026-07-04
+
+### Fixed
+
+- `eval()` 代码注入漏洞：SUPERUSERS 改用 `json.loads()`。
+- 发布失败后 session 未清理：`complete(session)` 前置。
+- FileCache 同步 I/O 阻塞事件循环：改为 `asyncio.to_thread`。
+- obfuscate/deobfuscate CPU 密集阻塞事件循环：改为 `asyncio.to_thread`。
+- shortcut 翻译后 event.message 未清空导致 handler 收到污染输入。
+- shortcut 纯 @ 码时 IndexError 崩溃。
+- keywords.json 解析失败静默失效无日志。
+- auto_recall 无频率限制：加 5 秒冷却。
+- 存储服务 storage.py + aiofiles 死代码删除。
+
+### Added
+
+- 定期内存清理（`services/cleanup.py`）：每 10 分钟回收过期 cooldown/throttle/session 条目。
+- `DEBUG_NONEBOT` 开关：控制 NoneBot2 框架日志。
+
+### Changed
+
+- 抑制 httpx/httpcore 的 HTTP 请求日志输出。
+- 抑制 nonebot 标准 logging 的 INFO 日志。
+- loguru 格式从 Python logging 格式改为原生格式。
+
 
 ### Added
 

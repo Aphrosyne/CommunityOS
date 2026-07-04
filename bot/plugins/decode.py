@@ -279,7 +279,7 @@ async def _deobfuscate_batch(images: list[bytes], user_id: int, prefix: str) -> 
     paths = []
     for i, data in enumerate(images):
         # 查询缓存
-        cached = cache_get(data)
+        cached = await cache_get(data)
         if cached is not None:
             timestamp = time.strftime("%Y-%m-%d_%H%M%S")
             tmp = IMAGE_DIR / f"_{prefix}_{timestamp}_{user_id}_{i}.jpg"
@@ -297,7 +297,7 @@ async def _deobfuscate_batch(images: list[bytes], user_id: int, prefix: str) -> 
             continue
 
         # 写入缓存
-        cache_set(data, result)
+        await cache_set(data, result)
 
         timestamp = time.strftime("%Y-%m-%d_%H%M%S")
         tmp = IMAGE_DIR / f"_{prefix}_{timestamp}_{user_id}_{i}.jpg"

@@ -8,6 +8,7 @@
     2. 按黄金比例偏移在曲线上循环移位
     3. numpy 向量化置换像素
 """
+import asyncio
 import hashlib
 import math
 import io
@@ -32,19 +33,19 @@ _image_cache = FileCache(
 )
 
 
-def cache_get(obfuscated_data: bytes) -> bytes | None:
+async def cache_get(obfuscated_data: bytes) -> bytes | None:
     """查询解混淆缓存"""
     key = hashlib.md5(obfuscated_data).hexdigest() + ".jpg"
-    result = _image_cache.get(key)
+    result = await _image_cache.get(key)
     if result is not None:
         logger.info(f"[缓存] 命中: {key[:16]}")
     return result
 
 
-def cache_set(obfuscated_data: bytes, original_data: bytes) -> None:
+async def cache_set(obfuscated_data: bytes, original_data: bytes) -> None:
     """写入解混淆缓存"""
     key = hashlib.md5(obfuscated_data).hexdigest() + ".jpg"
-    _image_cache.set(key, original_data)
+    await _image_cache.set(key, original_data)
     logger.info(f"[缓存] 写入: {key[:16]})")
 
 # 像素等级
@@ -188,78 +189,51 @@ def _generate2d(
         )
 
 
-async def obfuscate(image_data: bytes) -> bytes:
-    """对图片执行 Gilbert 曲线混淆
-
-    Args:
-        image_data: 原始图片 bytes
-
-    Returns:
-        混淆后的 JPEG bytes
-    """
+def _obfuscate_sync(image_data: bytes) -> bytes:
     img = Image.open(io.BytesIO(image_data)).convert("RGBA")
     width, height = img.size
     total = width * height
-
     logger.info(f"开始混淆: {width}x{height} ({total} 像素)")
-
-    # 图片 → numpy (height, width, 4)
-    pixels = np.array(img, dtype=np.uint8)
-
-    # Gilbert 曲线坐标
-    coords = _gilbert_coords(width, height)
-
-    # 计算源/目标索引映射
-    # old_index = coords[i, 0] + coords[i, 1] * width
-    old_idx = coords[:, 0] + coords[:, 1] * width  # shape (total,)
-
-    # 黄金比例偏移：像素沿曲线循环移位
-    offset = round((math.sqrt(5) - 1) / 2 * total)
-    new_idx = np.roll(old_idx, -offset)
-
-    # numpy 向量化置换：result[new_idx] = pixels[old_idx]
-    flat = pixels.reshape(-1, 4)  # (total, 4)
-    result = np.zeros_like(flat)
-    result[new_idx] = flat[old_idx]
-    result_img = result.reshape(height, width, 4)
-
-    # 输出 JPEG
-    rgb = Image.fromarray(result_img, "RGBA").convert("RGB")
-    buf = io.BytesIO()
-    rgb.save(buf, format="JPEG", quality=95)
-
-    logger.info(f"混淆完成: {width}x{height}")
-
-    return buf.getvalue()
-
-
-async def deobfuscate(image_data: bytes) -> bytes:
-    """对混淆图片执行 Gilbert 曲线解混淆（DEC 模式）
-
-    与 obfuscate() 置换方向相反。
-    """
-    img = Image.open(io.BytesIO(image_data)).convert("RGBA")
-    width, height = img.size
-    total = width * height
-
-    logger.info(f"开始解混淆: {width}x{height} ({total} 像素)")
-
     pixels = np.array(img, dtype=np.uint8)
     coords = _gilbert_coords(width, height)
-
     old_idx = coords[:, 0] + coords[:, 1] * width
     offset = round((math.sqrt(5) - 1) / 2 * total)
-    new_idx = np.roll(old_idx, offset)  # DEC: 反向置换
-
+    new_idx = np.roll(old_idx, -offset)
     flat = pixels.reshape(-1, 4)
     result = np.zeros_like(flat)
     result[new_idx] = flat[old_idx]
     result_img = result.reshape(height, width, 4)
-
     rgb = Image.fromarray(result_img, "RGBA").convert("RGB")
     buf = io.BytesIO()
     rgb.save(buf, format="JPEG", quality=95)
-
-    logger.info(f"解混淆完成: {width}x{height}")
-
+    logger.info(f"混淆完成: {width}x{height}")
     return buf.getvalue()
+
+
+def _deobfuscate_sync(image_data: bytes) -> bytes:
+    img = Image.open(io.BytesIO(image_data)).convert("RGBA")
+    width, height = img.size
+    total = width * height
+    logger.info(f"开始解混淆: {width}x{height} ({total} 像素)")
+    pixels = np.array(img, dtype=np.uint8)
+    coords = _gilbert_coords(width, height)
+    old_idx = coords[:, 0] + coords[:, 1] * width
+    offset = round((math.sqrt(5) - 1) / 2 * total)
+    new_idx = np.roll(old_idx, offset)
+    flat = pixels.reshape(-1, 4)
+    result = np.zeros_like(flat)
+    result[new_idx] = flat[old_idx]
+    result_img = result.reshape(height, width, 4)
+    rgb = Image.fromarray(result_img, "RGBA").convert("RGB")
+    buf = io.BytesIO()
+    rgb.save(buf, format="JPEG", quality=95)
+    logger.info(f"解混淆完成: {width}x{height}")
+    return buf.getvalue()
+
+
+async def obfuscate(image_data: bytes) -> bytes:
+    return await asyncio.to_thread(_obfuscate_sync, image_data)
+
+
+async def deobfuscate(image_data: bytes) -> bytes:
+    return await asyncio.to_thread(_deobfuscate_sync, image_data)

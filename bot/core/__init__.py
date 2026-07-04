@@ -11,10 +11,12 @@ driver = get_driver()
 async def on_startup():
     """机器人启动时执行"""
     setup_logging()
-    from services.scheduler import start_scheduler
+    from services.scheduler import start_scheduler, add_interval_job
     from services.runtime import mark_start
+    from services.cleanup import run_cleanup
     start_scheduler()
     mark_start()
+    add_interval_job(run_cleanup, seconds=600, job_id="cleanup")
 
 
 @driver.on_shutdown

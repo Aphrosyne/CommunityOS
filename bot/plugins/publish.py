@@ -235,7 +235,7 @@ async def _handle_session_locked(bot: Bot, event: MessageEvent):
             try:
                 tmp_path.write_bytes(obfuscated_data)
                 tmp_paths.append(tmp_path)
-                cache_set(obfuscated_data, image_data)
+                await cache_set(obfuscated_data, image_data)
             except Exception as e:
                 logger.error(f"写入临时文件失败: {e}")
 
@@ -270,6 +270,7 @@ async def _handle_session_locked(bot: Bot, event: MessageEvent):
                     logger.error(f"清理临时文件失败 ({p}): {e}")
 
         if not sent:
+            complete(session)
             await _reply(bot, event, "发布失败，请稍后重试。", "publish_failed")
             return
 
