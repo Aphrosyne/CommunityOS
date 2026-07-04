@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/lang/zh-CN/
 
 ---
 
+## [1.0.2] - 2026-07-04
+
+### Fixed
+
+- 计数类消息（已接收 N 张）从节流中移除，改用防抖播报：1.5s 内无新图只报一次最终数。
+
+---
+
 ## [1.0.1] - 2026-07-04
 
 ### Fixed

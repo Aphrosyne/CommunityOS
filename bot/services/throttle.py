@@ -6,6 +6,7 @@ Throttle 限制的是机器人对重复消息的回复频率。
 
 规则：同一个 (user_id, reply_type) 在窗口时间内只回复一次。
 """
+import asyncio
 import time
 
 from services.logger import get_logger
@@ -14,6 +15,9 @@ logger = get_logger(__name__)
 
 # {(user_id, reply_type): last_reply_timestamp}
 _sent: dict[tuple[int, str], float] = {}
+
+# 防抖任务: {key: asyncio.Task}
+_debounce: dict[str, asyncio.Task] = {}
 
 DEFAULT_WINDOW = 5  # 默认沉默窗口秒数
 
@@ -38,3 +42,17 @@ def should_reply(user_id: int, reply_type: str, window: int = DEFAULT_WINDOW) ->
         return True
 
     return False
+
+
+async def debounce_count(user_id: int, key: str, count: int, send_coro, delay: float = 1.5):
+    """防抖计数——delay 秒内无新调用时发送最终计数"""
+    dk = f"{user_id}_{key}"
+    if dk in _debounce:
+        _debounce[dk].cancel()
+
+    async def _fire():
+        await asyncio.sleep(delay)
+        await send_coro
+        _debounce.pop(dk, None)
+
+    _debounce[dk] = asyncio.create_task(_fire())

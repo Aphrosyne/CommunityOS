@@ -31,7 +31,7 @@ from services.session import (
     create, get_active, complete, cancel, get_expired,
 )
 from services.permission import is_owner
-from services.throttle import should_reply
+from services.throttle import should_reply, debounce_count
 from services.logger import get_logger
 
 logger = get_logger("image")
@@ -240,7 +240,10 @@ async def _handle_session_locked(bot: Bot, event: MessageEvent):
 
         count = len(images)
         logger.info(f"[混淆] 用户 {event.user_id} 已接收 {count} 张")
-        await _reply(bot, event, f"已接收 {count} 张图片。", "obf_count")
+        await debounce_count(
+            event.user_id, "obfuscate", count,
+            bot.send(event, f"已接收 {count} 张图片。")
+        )
         return
 
     await _reply(
