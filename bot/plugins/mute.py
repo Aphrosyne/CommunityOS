@@ -188,7 +188,7 @@ register(
 )
 register(
     "self_mute", handle_self_mute,
-    description="随机自禁",
+    description="随机自禁言",
     permission=0, cooldown_level=0,
     aliases=["自禁"],
 )

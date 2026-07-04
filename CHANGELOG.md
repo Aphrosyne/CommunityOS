@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/lang/zh-CN/
 
 ---
 
+## [0.20.1] - 2026-07-04
+
+### Added
+
+- 网址自动补全指令（`尾号 <数字ID>`）：拼接前缀返回完整 N 网链接。
+
+---
+
 ## [0.20.0] - 2026-07-04
 
 ### Added
