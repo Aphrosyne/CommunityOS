@@ -70,9 +70,9 @@ Every design decision should reduce long-term maintenance costs, not increase th
 CommunityOS/
 │
 ├── README.md                   # Project overview
-├── README_EN.md                # English version of this document
-├── LICENSE
-├── CHANGELOG.md
+├── README_EN.md                # English version
+├── LICENSE                     # MIT
+├── CHANGELOG.md                # SemVer changelog
 ├── .gitignore
 │
 ├── docs/                       # All documentation
@@ -94,23 +94,19 @@ CommunityOS/
 │   │   ├── coding-style.md     # Coding style
 │   │   ├── technical-stack.md  # Tech stack
 │   │   └── api.md              # API reference
-│   └── development/            # Development log
-│       ├── 2026-06-28-bootstrap.md
-│       └── 2026-06-29-image-pipeline.md
+│   └── development/            # Dev logs by date
 │
 ├── bot/                        # Python project
 │   ├── main.py                 # Entry point
-│   ├── core/                   # Core
-│   ├── adapters/               # Platform adapters
-│   ├── plugins/                # Plugins
-│   ├── services/               # Shared services
-│   ├── config/                 # Configuration
-│   ├── data/                   # Data
-│   ├── logs/                   # Logs
+│   ├── core/                   # Lifecycle hooks
+│   ├── services/               # Shared services (10)
+│   ├── plugins/                # Business plugins (12)
+│   ├── config/                 # Config files
+│   ├── setup.bat               # One-click setup
+│   ├── start.bat               # One-click start
 │   └── requirements.txt
 │
 ├── tests/                      # Tests
-│
 └── scripts/                    # Utility scripts
 ```
 

@@ -1,8 +1,8 @@
 # CommunityOS 总体架构
 
-> **状态：** 草案
-> **版本：** v0.2
-> **最后更新：** 2026-06-29
+> **状态：** 正式
+> **版本：** v1.0
+> **最后更新：** 2026-07-04
 
 ---
 
@@ -39,39 +39,49 @@ CommunityOS 的架构目标：
         ┌───────────────┼───────────────┐
         │               │               │
         ▼               ▼               ▼
-     核心             公共服务           插件
-    (Core)         (Services)       (Plugins)
+  消息规则服务        公共服务           插件
+ (Message Rule)    (Services)      (Plugins)
         │               │               │
         └───────────────┼───────────────┘
+                        │
+                 指令系统 (Command System)
                         │
                平台适配层 (Platform Adapter)
                         │
                     NapCat / QQ
 ```
 
-CommunityOS 分为四个主要层次：
+CommunityOS 分为六个主要层次：
 
-- 核心（Core）
-- 公共服务（Services）
-- 插件（Plugins）
-- 平台适配层（Platform Adapter）
+- 消息规则服务（Message Rule Service）— 群消息统一入口，规则匹配与路由
+- 公共服务（Services）— 可复用的通用能力
+- 插件（Plugins）— 业务功能实现
+- 指令系统（Command System）— 命令注册、权限检查、冷却、分发
+- 平台适配层（Platform Adapter）— 与聊天平台通信
 
 ---
 
-# 核心
+# 消息规则服务
 
-核心是整个系统的中枢。
+消息规则服务是群消息的统一入口，负责：
 
-负责：
+- 接收所有群消息
+- 按规则匹配（`exact_text`、`contains_phrase`）
+- 低权限命令自动路由到指令系统（管理群内免 @bot）
+- 违禁词匹配后分发给自动审核插件
+- 本身不执行指令或撤回，只做匹配与路由
 
-- 接收平台事件
-- 分发任务
-- 管理插件生命周期
-- 提供统一接口
+---
 
-核心不负责具体业务。
+# 指令系统
 
-任何业务逻辑都不应直接写在核心中。
+指令系统是 CommunityOS 的统一命令入口，负责：
+
+- 命令注册与别名管理
+- 命令冷却（三级：查询/会话/管理）
+- 命令权限检查（User/Admin/Owner）
+- 快捷映射（shortcuts，全句 → 完整指令）
+- 命令分发与审计日志
 
 ---
 
@@ -79,13 +89,16 @@ CommunityOS 分为四个主要层次：
 
 公共服务提供可复用的通用能力。
 
-例如：
+当前已实现：
 
-- 日志（Logger）
-- 存储（Storage）
-- 配置（Config）
-- 定时调度（Scheduler）
-- 备份（Backup）
+- 日志（Logger Service）— 按领域分文件（bot/command/image/member/moderation/relationship）
+- 配置（Config Service）— 外部 `.env` 配置
+- 定时调度（Scheduler Service）— 基于 APScheduler
+- 权限（Permission Service）— 三级权限（User/Admin/Owner）
+- 会话（Session Service）— 多步交互流程管理
+- 节流（Throttle Service）— 按 (user_id, reply_type) 控制回复频率
+- 缓存（Cache Service）— 文件缓存，LRU 淘汰
+- 运行时（Runtime Service）— 启动时间与运行状态
 
 公共服务不直接响应 QQ 消息。
 
@@ -99,24 +112,23 @@ CommunityOS 分为四个主要层次：
 
 CommunityOS 的所有功能均以插件形式存在。
 
-例如：
+当前已实现：
 
 ```text
 plugins/
 
-welcome/
-
-image/
-
-backup/
-
-statistics/
-
-keyword/
-
-risk/
-
-scheduler/
+├── help.py              # 帮助指令
+├── status.py            # 运行状态
+├── command_dispatcher.py # 指令分发器
+├── publish.py           # 批量发布（混淆 + 多群转发）
+├── obfuscate.py         # 图片混淆
+├── decode.py            # 图片解混淆（三种方式）
+├── mute.py              # 禁言 / 解除禁言 / 自禁
+├── auto_recall.py       # 违禁词自动撤回
+├── auto_complete.py     # 网址自动补全
+├── shortcuts.py         # 快捷映射查询
+├── friend.py            # 好友申请自动处理
+└── member.py            # 群成员变更日志
 ```
 
 每个插件只负责一个明确职责。
@@ -155,7 +167,7 @@ scheduler/
 
 # 请求流程
 
-典型流程如下：
+群消息典型流程：
 
 ```text
 QQ 群事件
@@ -170,40 +182,23 @@ NapCat
 
 ↓
 
-核心
-
-↓
-
-插件
-
-↓
-
-公共服务（如需要）
-
-↓
-
-返回结果
-
-↓
-
-平台适配层
+消息规则服务
+  ├─ 命令规则命中 → 指令系统 → 插件 → 公共服务 → 回复
+  ├─ 审核规则命中 → auto_recall 插件 → 撤回
+  └─ 未命中 → 忽略
 
 ↓
 
 QQ 群
 ```
 
-平台只负责通信。
-
-插件负责业务。
-
-公共服务负责提供通用能力。
+私聊消息直接由指令系统处理。
 
 ---
 
 # 插件生命周期
 
-插件统一由核心管理。
+插件统一由 NoneBot2 管理。
 
 生命周期包括：
 
@@ -229,7 +224,7 @@ QQ 群
 - API Key
 - 路径
 
-配置应支持未来统一管理。
+配置通过 `.env` 和 `config/*.json` 提供，应支持未来统一管理。
 
 ---
 
@@ -237,15 +232,18 @@ QQ 群
 
 所有重要操作均应记录日志。
 
-建议记录：
+日志按业务领域分文件：
 
-- 管理操作
-- 插件异常
-- 自动化任务
-- 图片处理
-- 入群审核
+| 日志文件 | 用途 |
+|----------|------|
+| `bot.log` | 系统运行、启动、异常 |
+| `command.log` | 指令执行 |
+| `image.log` | 图片业务 |
+| `member.log` | 群成员事件 |
+| `moderation.log` | 管理操作审计 |
+| `relationship.log` | 好友关系事件 |
 
-日志应统一由日志服务管理。
+日志由日志服务统一管理。控制台输出与文件独立控制。
 
 ---
 
@@ -263,24 +261,23 @@ QQ 群
 
 # 目录结构
 
-建议目录结构：
+当前实际目录结构：
 
 ```text
 bot/
 
-core/
-
-adapters/
-
-services/
-
-plugins/
-
-config/
-
-data/
-
-logs/
+├── core/               # 启动与生命周期钩子
+├── services/           # 公共服务
+├── plugins/            # 业务插件
+├── config/             # 配置文件（.json，gitignored）
+├── data/               # 运行时数据（gitignored）
+├── logs/               # 日志文件（gitignored）
+├── main.py             # 入口
+├── .env                # 环境配置（gitignored）
+├── .env.example        # 配置模板
+├── setup.bat           # 一键安装
+├── start.bat           # 一键启动
+└── requirements.txt    # Python 依赖
 ```
 
 每个目录职责明确。
@@ -307,12 +304,13 @@ CommunityOS 在开发过程中遵循以下原则：
 
 - 社区治理
 - 群规
-- NapCat 部署方式
+- NapCat 部署方式（见 `deployment.md`）
 - 插件内部实现
-- 图片处理流程
+- 图片处理流程（见 `image-pipeline.md`）
+- 指令系统细节（见 `command-system.md`）
 - 数据库设计
 
-上述内容将在其他文档中说明。
+上述内容将在对应文档中说明。
 
 ---
 

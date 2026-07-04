@@ -70,13 +70,14 @@ CommunityOS 的思路是：**把社区管理当作工程问题来解决，而不
 CommunityOS/
 │
 ├── README.md                   # 项目总览（本文件）
-├── LICENSE
-├── CHANGELOG.md
+├── LICENSE                     # MIT
+├── CHANGELOG.md                # 变更记录（SemVer）
 ├── .gitignore
 │
 ├── docs/                       # 所有文档
-│   ├── philosophy.md           # 社区理念
+│   ├── philosophy.md           # 核心理念
 │   ├── architecture.md         # 总体架构
+│   ├── deployment.md           # 部署指南
 │   ├── governance/             # 治理文档
 │   │   ├── governance.md       # 社区治理框架
 │   │   ├── group-rules.md      # 群规
@@ -93,23 +94,19 @@ CommunityOS/
 │   │   ├── coding-style.md     # 代码规范
 │   │   ├── technical-stack.md  # 技术栈
 │   │   └── api.md              # API 参考
-│   └── development/            # 开发记录
-│       ├── 2026-06-28-bootstrap.md
-│       └── 2026-06-29-image-pipeline.md
+│   └── development/            # 按日期归档的开发记录
 │
 ├── bot/                        # Python 工程
 │   ├── main.py                 # 入口
-│   ├── core/                   # 核心
-│   ├── adapters/               # 平台适配
-│   ├── plugins/                # 插件
-│   ├── services/               # 公共服务
-│   ├── config/                 # 配置
-│   ├── data/                   # 数据
-│   ├── logs/                   # 日志
+│   ├── core/                   # 核心钩子
+│   ├── services/               # 公共服务（10 个）
+│   ├── plugins/                # 业务插件（12 个）
+│   ├── config/                 # 配置文件
+│   ├── setup.bat               # 一键安装
+│   ├── start.bat               # 一键启动
 │   └── requirements.txt
 │
 ├── tests/                      # 测试
-│
 └── scripts/                    # 运维脚本
 └── .github/                    # GitHub Actions
 ```
@@ -129,9 +126,9 @@ CommunityOS/
 
 ## 当前状态
 
-**版本：Draft v0.1**
+**版本：v1.0.0**
 
-当前阶段聚焦于设计文档的编写，代码实现置后。
+图片处理流水线、群管理、指令系统、违禁词审核等核心功能已可用。持续迭代中。
 
 项目遵循**架构优先**原则 —— 先把设计做好，再动手做实现。
 

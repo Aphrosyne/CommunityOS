@@ -11,6 +11,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/lang/zh-CN/
 
 ---
 
+## [1.0.0] - 2026-07-04
+
+### Added
+
+- 部署指南（`deployment.md`）、一键安装（`setup.bat`）、一键启动（`start.bat`）。
+- 总体架构文档 v1.0（中英双语）、README 更新。
+- `.env.example` 补全 `ONEBOT_ACCESS_TOKEN`。
+
+### Changed
+
+- 版本号升至 1.0.0 正式版。
+
+---
+
 ## [0.21.0] - 2026-07-04
 
 ### Fixed
