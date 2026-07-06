@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/lang/zh-CN/
 
 ---
 
+## [1.0.3] - 2026-07-04
+
+### Fixed
+
+- `.env.example` 中 `GREETING_REPLY` 移除具体昵称，改用通用占位符。
+
+---
+
 ## [1.0.2] - 2026-07-04
 
 ### Fixed
