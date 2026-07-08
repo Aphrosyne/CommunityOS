@@ -1,0 +1,8 @@
+{
+  "GREETING_REPLY": "你好呀 这里是机器人名字",
+  "IMAGE_DECODE_URL": "https://ranzt.com/xiaofanqiehunxiao",
+  "FRIEND_VERIFY_ANSWER": "",
+  "SELF_MUTE_REPLIES": ["戴好了", "已老实", "知道了"],
+  "URL_AUTOCOMPLETE_PREFIX": "https://www.nexusmods.com/skyrimspecialedition/mods/",
+  "reload_marker": "初始版本"
+}

@@ -11,6 +11,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/lang/zh-CN/
 
 ---
 
+## [1.1.0] - 2026-07-08
+
+### Added
+
+- 配置热更新：新增 `reload` / `重载` 指令（Owner 专用，hidden 不显示在 help），运行期重新加载 `runtime.json`、`keywords.json`、`shortcuts.json` 三个配置文件，无需重启。
+- 运行时配置服务 `services/runtime_config.py`：管理可在运行期变更的配置项，提供 `get(key)` 函数访问和 `reload()` 重载。
+- 配置文件 `bot/config/runtime.json`（gitignored）+ `runtime.example.json` 示例。
+
+### Changed
+
+- 5 项配置从 `.env` 迁移至 `runtime.json`（JSON 格式，`SELF_MUTE_REPLIES` 从 `|` 分隔字符串改为 JSON 数组）：
+  - `GREETING_REPLY`（greet 插件）
+  - `IMAGE_DECODE_URL`（publish 插件）
+  - `FRIEND_VERIFY_ANSWER`（friend 插件）
+  - `SELF_MUTE_REPLIES`（mute 插件）
+  - `URL_AUTOCOMPLETE_PREFIX`（auto_complete 插件）
+- 上述 5 个插件改为通过 `runtime_config.get()` 函数访问配置值，确保热更新立即生效（避免 `from config import X` 的导入引用陈旧问题）。
+- `services/shortcut.py` 的 `reload()` 返回值从 `None` 改为 `tuple[bool, str]`，统一与其他 reload 函数的返回格式。
+- `services/message_rule.py` 新增公开函数 `reload_keywords()`，返回 `tuple[bool, str]`。
+
+### Removed
+
+- `.env` 和 `.env.example` 移除上述 5 项配置项（保留注释说明已迁移）。
+- `services/config.py` 移除上述 5 项配置的读取代码。
+
+---
+
 ## [1.0.4] - 2026-07-08
 
 ### Fixed

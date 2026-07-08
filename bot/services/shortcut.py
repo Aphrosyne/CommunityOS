@@ -20,17 +20,23 @@ CONFIG_PATH = Path(__file__).resolve().parent.parent / "config" / "shortcuts.jso
 _map: dict[str, dict[str, str]] = {}
 
 
-def reload() -> None:
-    """重新加载映射文件"""
+def reload() -> tuple[bool, str]:
+    """重新加载映射文件
+
+    Returns:
+        (success, error_msg)
+    """
     global _map
     try:
-        if CONFIG_PATH.exists():
-            _map = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
-        else:
+        if not CONFIG_PATH.exists():
             _map = {}
+            return False, f"配置文件不存在: {CONFIG_PATH.name}"
+        _map = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
+        return True, ""
     except Exception as e:
         logger.error(f"加载 shortcuts.json 失败: {e}")
         _map = {}
+        return False, str(e)
 
 
 def match(text: str, group_id: int = 0) -> str | None:

@@ -4,7 +4,7 @@
 from nonebot import on_request
 from nonebot.adapters.onebot.v11 import Bot, FriendRequestEvent
 
-from services.config import FRIEND_VERIFY_ANSWER
+from services.runtime_config import get as get_runtime_config
 from services.logger import get_logger
 
 logger = get_logger("relationship")
@@ -14,7 +14,8 @@ friend_req = on_request(priority=5)
 
 @friend_req.handle()
 async def handle_friend_request(bot: Bot, event: FriendRequestEvent):
-    if not FRIEND_VERIFY_ANSWER:
+    verify_answer = get_runtime_config("FRIEND_VERIFY_ANSWER", "")
+    if not verify_answer:
         return
 
     user_id = event.user_id
@@ -24,7 +25,7 @@ async def handle_friend_request(bot: Bot, event: FriendRequestEvent):
     answer = last_line.removeprefix("回答:").removeprefix("答案:").strip()
     flag = event.flag
 
-    if answer == FRIEND_VERIFY_ANSWER:
+    if answer == verify_answer:
         await bot.set_friend_add_request(flag=flag, approve=True)
         logger.info(f"好友申请 同意: user={user_id}")
     else:

@@ -43,6 +43,7 @@ nonebot.load_plugin("plugins.mute")
 nonebot.load_plugin("plugins.shortcuts")
 nonebot.load_plugin("plugins.auto_recall")
 nonebot.load_plugin("plugins.auto_complete")
+nonebot.load_plugin("plugins.reload")
 # TODO: 后续改为 load_plugins("plugins") 自动扫描所有插件
 
 # --- 启动时打印已加载插件 ---

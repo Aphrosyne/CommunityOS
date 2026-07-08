@@ -7,7 +7,8 @@ import re
 from nonebot.adapters.onebot.v11 import Bot, MessageEvent, MessageSegment
 
 from services.command import register
-from services.config import OWNER, SELF_MUTE_REPLIES
+from services.config import OWNER
+from services.runtime_config import get as get_runtime_config
 from services.logger import get_logger
 
 m_log = get_logger("moderation")
@@ -171,8 +172,9 @@ async def handle_self_mute(bot: Bot, event: MessageEvent):
             f"action=mute operator={operator_id} group={group_id} "
             f"target={operator_id} result=success duration={duration}s type=self"
         )
-        if SELF_MUTE_REPLIES:
-            msg = MessageSegment.at(operator_id) + MessageSegment.text(random.choice(SELF_MUTE_REPLIES))
+        replies = get_runtime_config("SELF_MUTE_REPLIES", [])
+        if replies:
+            msg = MessageSegment.at(operator_id) + MessageSegment.text(random.choice(replies))
             await bot.send(event, msg)
     except Exception as e:
         m_log.info(

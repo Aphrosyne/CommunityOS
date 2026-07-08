@@ -18,7 +18,6 @@ from services.command import register
 from services.config import (
     IMAGE_DIR,
     MANAGED_GROUPS,
-    IMAGE_DECODE_URL,
     PUBLISH_COOLDOWN_BASE,
     PUBLISH_COOLDOWN_MAX,
     PUBLISH_COOLDOWN_PER_IMAGE,
@@ -26,6 +25,7 @@ from services.config import (
     PUBLISH_TIMEOUT,
     SESSION_SCAN_INTERVAL,
 )
+from services.runtime_config import get as get_runtime_config
 from services.image_obfuscator import (
     obfuscate, cache_set, check_image_limits, precheck_limits,
     PIXEL_TIER_REJECT, PIXEL_TIER_BOT_ONLY,
@@ -254,7 +254,7 @@ async def _handle_session_locked(bot: Bot, event: MessageEvent):
             if session.data.get("has_bot_only"):
                 msg += MessageSegment.text(" 图片较大，仅可通过机器人解图还原。")
             else:
-                msg += MessageSegment.text(f" {IMAGE_DECODE_URL}")
+                msg += MessageSegment.text(f" {get_runtime_config('IMAGE_DECODE_URL', '')}")
 
             for gid in target_gids:
                 await bot.send_group_msg(group_id=gid, message=msg)

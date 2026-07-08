@@ -2,11 +2,12 @@
 from nonebot.adapters.onebot.v11 import Bot, MessageEvent
 
 from services.command import register
-from services.config import URL_AUTOCOMPLETE_PREFIX
+from services.runtime_config import get as get_runtime_config
 
 
 async def handle_autocomplete(bot: Bot, event: MessageEvent):
-    if not URL_AUTOCOMPLETE_PREFIX:
+    prefix = get_runtime_config("URL_AUTOCOMPLETE_PREFIX", "")
+    if not prefix:
         await bot.send(event, "网址补全功能尚未配置。")
         return
 
@@ -17,7 +18,7 @@ async def handle_autocomplete(bot: Bot, event: MessageEvent):
         await bot.send(event, "用法：尾号 <数字ID>")
         return
 
-    url = URL_AUTOCOMPLETE_PREFIX.rstrip("/") + "/" + arg
+    url = prefix.rstrip("/") + "/" + arg
     await bot.send(event, url)
 
 

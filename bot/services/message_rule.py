@@ -65,6 +65,26 @@ def _load_keywords() -> None:
         _keywords = {}
 
 
+def reload_keywords() -> tuple[bool, str]:
+    """重新加载 keywords.json
+
+    Returns:
+        (success, error_msg)
+    """
+    global _keywords
+    try:
+        if not _KEYWORDS_PATH.exists():
+            _keywords = {}
+            return False, f"配置文件不存在: {_KEYWORDS_PATH.name}"
+        _keywords = json.loads(_KEYWORDS_PATH.read_text(encoding="utf-8"))
+        return True, ""
+    except Exception as e:
+        log = get_logger("bot")
+        log.error(f"重载 keywords.json 失败: {e}")
+        _keywords = {}
+        return False, str(e)
+
+
 def check_keywords(group_id: int, text: str) -> list[str]:
     """返回命中的违禁词列表。先查群专属，再查全局 *"""
     hits = []

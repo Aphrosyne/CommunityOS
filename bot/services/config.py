@@ -36,16 +36,11 @@ SUPERUSERS: list[str] = json.loads(os.getenv("SUPERUSERS", "[]"))
 # 机器人 QQ
 BOT_QQ = int(os.getenv("BOT_QQ", "0"))
 
-# 被 @ 时的回复内容
-GREETING_REPLY = os.getenv("GREETING_REPLY", "你好呀 这里是柳千语")
+# 被 @ 时的回复内容（已迁移至 runtime.json，见 services/runtime_config.py）
 
 # 图片投稿
 MANAGED_GROUPS: list[int] = [int(x.strip()) for x in os.getenv("MANAGED_GROUPS", "").split(",") if x.strip()]
-IMAGE_DECODE_URL = os.getenv("IMAGE_DECODE_URL", "")
 IMAGE_MAX_FILE_SIZE = int(os.getenv("IMAGE_MAX_FILE_SIZE", "20"))
-FRIEND_VERIFY_ANSWER = os.getenv("FRIEND_VERIFY_ANSWER", "")
-SELF_MUTE_REPLIES = [x.strip() for x in os.getenv("SELF_MUTE_REPLIES", "").split("|") if x.strip()]
-URL_AUTOCOMPLETE_PREFIX = os.getenv("URL_AUTOCOMPLETE_PREFIX", "")
 IMAGE_CACHE_MAX_MB = int(os.getenv("IMAGE_CACHE_MAX_MB", "500"))
 IMAGE_MAX_PIXELS = int(os.getenv("IMAGE_MAX_PIXELS", "20000000"))
 IMAGE_WEBSITE_MAX_PIXELS = int(os.getenv("IMAGE_WEBSITE_MAX_PIXELS", "8000000"))
