@@ -11,6 +11,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/lang/zh-CN/
 
 ---
 
+## [1.0.4] - 2026-07-08
+
+### Fixed
+
+- 指令误触发：`帮助 xxx`、`状态 xxx` 等"指令+空格+聊天内容"被错误触发为指令。新增 `accepts_args` 参数规则（`False` 纯指令 / `True` 任意参数 / `Sequence[str]` 参数白名单），`help` 限制为只接受 `图片` 参数。
+- 群聊专属命令在私聊中消耗冷却：`禁言`、`自禁` 在私聊发送会进入 handler 后静默 return 但冷却已被写入。新增 `group_only` 参数，dispatcher 在冷却写入前校验场景，私聊直接忽略。
+
+### Changed
+
+- `register()` 新增 `accepts_args` 和 `group_only` 两个参数，统一控制命令的参数规则和适用场景。
+- `help.py` 文档字符串清理未实现的参数说明（`help publish / 帮助 混淆`）。
+- 移除 `command_dispatcher.py` 中未使用的 `to_me` 导入。
+
+---
+
 ## [1.0.3] - 2026-07-04
 
 ### Fixed

@@ -26,4 +26,5 @@ register(
     description="补全网址",
     permission=0,
     aliases=["尾号"],
+    accepts_args=True,
 )

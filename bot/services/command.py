@@ -31,6 +31,8 @@ def register(
     permission: int = 0,
     cooldown_level: int = 0,
     hidden: bool = False,
+    accepts_args: bool | Sequence[str] = False,
+    group_only: bool = False,
 ) -> None:
     """注册命令
 
@@ -43,11 +45,18 @@ def register(
         permission: 最低权限等级（0=User, 1=BotAdmin, 2=Owner），默认 0
         cooldown_level: 冷却等级（0=查询, 1=会话启动, 2=管理），默认 0
         hidden: 是否在 help 中隐藏，默认 False
+        accepts_args: 参数规则。False 时必须纯指令触发（消息全文等于命令名/别名）；
+            True 时允许指令后带任意参数（如 "禁言 @用户 1m"）；
+            Sequence[str] 时为参数白名单，第二词必须在白名单内（如 help 只允许 "图片"）。
+            默认 False
+        group_only: 是否仅群聊有效。True 时私聊发送该命令将被忽略（不消耗冷却、不调用 handler）。
+            默认 False
     """
     _commands[name] = {
         "handler": handler, "description": description,
         "help_text": help_text, "permission": permission,
         "cooldown_level": cooldown_level, "hidden": hidden,
+        "accepts_args": accepts_args, "group_only": group_only,
     }
     logger.info(f"命令已注册: {name}")
 
@@ -90,3 +99,26 @@ def list_all() -> list[dict[str, Any]]:
             "hidden": info.get("hidden", False),
         })
     return result
+
+
+def matches_args(cmd: dict[str, Any], words: list[str]) -> bool:
+    """检查消息词列表是否符合命令的参数规则
+
+    Args:
+        cmd: 命令信息字典（来自 get/list_all）
+        words: 消息按空白分割后的词列表（words[0] 为命令名/别名）
+
+    Returns:
+        True 表示参数规则通过，应继续处理
+    """
+    accepts = cmd.get("accepts_args", False)
+    if accepts is True:
+        # 允许任意参数
+        return True
+    if accepts is False:
+        # 纯指令：只能有命令名，无参数
+        return len(words) == 1
+    # Sequence[str] 白名单：无参数允许；有参数则第二词必须在白名单内
+    if len(words) == 1:
+        return True
+    return words[1] in accepts

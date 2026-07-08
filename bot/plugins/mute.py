@@ -185,10 +185,12 @@ register(
     "mute", handle_mute,
     permission=1, cooldown_level=2, hidden=True,
     aliases=["禁言", "解除"],
+    accepts_args=True, group_only=True,
 )
 register(
     "self_mute", handle_self_mute,
     description="随机自禁言",
     permission=0, cooldown_level=0,
     aliases=["自禁"],
+    accepts_args=True, group_only=True,
 )

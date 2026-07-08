@@ -3,8 +3,7 @@
 
 用法：
     help / 帮助          → 命令列表
-    help 图片         → 图片三件套详细说明
-    help publish / 帮助 混淆 → 单个命令详细说明
+    help 图片            → 图片三件套详细说明
 """
 from nonebot.adapters.onebot.v11 import Bot, MessageEvent
 
@@ -67,4 +66,4 @@ async def _show_image_help(bot: Bot, event: MessageEvent, commands: list[dict]):
     await bot.send(event, text)
 
 
-register("help", handle_help, description="显示帮助信息", aliases=["帮助"])
+register("help", handle_help, description="显示帮助信息", aliases=["帮助"], accepts_args=("图片",))

@@ -11,11 +11,10 @@ import re
 import time
 
 from nonebot import on_message
-from nonebot.rule import to_me
 from nonebot.adapters.onebot.v11 import Bot, MessageEvent, MessageSegment
 from nonebot.typing import T_State
 
-from services.command import get as get_command
+from services.command import get as get_command, matches_args
 from services.config import COMMAND_COOLDOWNS
 from services.permission import check as check_permission, is_owner
 from services.shortcut import match as shortcut_match
@@ -50,10 +49,12 @@ async def dispatch(bot: Bot, event: MessageEvent, state: T_State):
     cmd_name = msg.split()[0].lower()
     user_id = event.user_id
     group_id = getattr(event, "group_id", 0) or 0
+    shortcut_hit = False
 
     # 快捷映射：全句匹配 → 替换指令
     shortcut = shortcut_match(msg, group_id=group_id)
     if shortcut is not None:
+        shortcut_hit = True
         at_segs = [seg for seg in event.message if seg.type == "at"]
         at_target = at_segs[0].data["qq"] if at_segs else ""
         translated = shortcut.replace("{at}", f"[CQ:at,qq={at_target}]")
@@ -78,6 +79,17 @@ async def dispatch(bot: Bot, event: MessageEvent, state: T_State):
     # 只处理已注册命令，未注册的静默忽略
     cmd = get_command(cmd_name)
     if cmd is None:
+        return
+
+    # 参数规则校验（accepts_args）：
+    #   False → 纯指令；True → 任意参数；Sequence[str] → 白名单
+    # shortcut 命中时跳过：快捷映射是显式配置，应信任
+    if not shortcut_hit:
+        if not matches_args(cmd, msg.split()):
+            return
+
+    # 场景校验：group_only 命令在私聊中直接忽略（不消耗冷却、不调用 handler）
+    if cmd.get("group_only") and event.message_type != "group":
         return
 
     # 冷却检查（Owner 豁免，分群独立）
