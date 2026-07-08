@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/lang/zh-CN/
 
 ---
 
+## [1.1.1] - 2026-07-08
+
+### Fixed
+
+- `setup.bat` 遗漏 `runtime.json` 复制步骤：新安装时不会从 `runtime.example.json` 创建 `runtime.json`，导致运行时配置服务回退到示例值。新增 runtime.json 复制逻辑，并在完成提示中增加编辑 runtime.json 的说明。
+
+---
+
 ## [1.1.0] - 2026-07-08
 
 ### Added

@@ -38,9 +38,16 @@ if not exist config\keywords.json (
 ) else (
     echo   keywords.json 已存在，跳过
 )
+if not exist config\runtime.json (
+    copy config\runtime.example.json config\runtime.json >nul
+    echo   runtime.json 已创建
+) else (
+    echo   runtime.json 已存在，跳过
+)
 
 echo [4/4] 完成！
 echo.
 echo 请编辑 .env 文件填写必要配置（OWNER、ADMINS、MANAGED_GROUPS 等）
+echo 然后编辑 config\runtime.json 填写运营配置（GREETING_REPLY 等）
 echo 然后运行 start.bat 启动机器人
 pause
