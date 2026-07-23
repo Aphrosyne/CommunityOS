@@ -45,6 +45,12 @@ _pending: list[PendingRequest] = []
 
 @group_req.handle()
 async def handle_group_request(bot: Bot, event: GroupRequestEvent):
+    # 无条件记录所有进入 handler 的群请求事件（便于排查事件是否到达）
+    logger.info(
+        f"收到群请求事件: group={event.group_id} user={event.user_id} "
+        f"sub_type={event.sub_type}"
+    )
+
     # 只处理主动申请加群
     if event.sub_type != "add":
         return
