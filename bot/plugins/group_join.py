@@ -251,11 +251,44 @@ register(
 )
 
 
-async def handle_debug_group_info(bot: Bot, event: MessageEvent):
-    """临时诊断：调用 get_group_info 查看群信息"""
+async def handle_debug_bot_role(bot: Bot, event: MessageEvent):
+    """临时诊断：检查机器人在指定群是否是管理员"""
+    from services.config import BOT_QQ
+
     msg = event.get_plaintext().strip().split()
     if len(msg) < 2:
-        await bot.send(event, "用法: debug_group_info <群号>")
+        await bot.send(event, "用法: debug_bot_role <群号>")
+        return
+    try:
+        group_id = int(msg[1])
+    except ValueError:
+        await bot.send(event, "群号无效")
+        return
+
+    if not BOT_QQ:
+        await bot.send(event, "未配置 BOT_QQ，无法检查")
+        return
+
+    try:
+        info = await bot.call_api(
+            "get_group_member_info", group_id=group_id, user_id=BOT_QQ
+        )
+        role = info.get("role", "unknown")
+        role_map = {"owner": "群主", "admin": "管理员", "member": "普通成员"}
+        role_text = role_map.get(role, role)
+        await bot.send(
+            event,
+            f"群 {group_id} 中机器人 ({BOT_QQ}) 角色: {role_text}\n原始返回: {info}",
+        )
+    except Exception as e:
+        await bot.send(event, f"调用失败: {type(e).__name__}: {e}")
+
+
+async def handle_debug_join_mode(bot: Bot, event: MessageEvent):
+    """临时诊断：检查群的入群申请方式"""
+    msg = event.get_plaintext().strip().split()
+    if len(msg) < 2:
+        await bot.send(event, "用法: debug_join_mode <群号>")
         return
     try:
         group_id = int(msg[1])
@@ -264,15 +297,27 @@ async def handle_debug_group_info(bot: Bot, event: MessageEvent):
         return
 
     try:
-        result = await bot.call_api("get_group_info", group_id=group_id)
-        await bot.send(event, f"群 {group_id} 信息:\n{result}")
+        info = await bot.call_api("get_group_info", group_id=group_id)
+        await bot.send(
+            event,
+            f"群 {group_id} 完整信息（含入群方式相关字段）:\n{info}",
+        )
     except Exception as e:
         await bot.send(event, f"调用失败: {type(e).__name__}: {e}")
 
 
 register(
-    "debug_group_info", handle_debug_group_info,
-    description="查看群信息",
+    "debug_bot_role", handle_debug_bot_role,
+    description="检查机器人管理员角色",
+    permission=2,
+    cooldown_level=2,
+    hidden=True,
+    accepts_args=True,
+)
+
+register(
+    "debug_join_mode", handle_debug_join_mode,
+    description="检查群入群方式",
     permission=2,
     cooldown_level=2,
     hidden=True,
