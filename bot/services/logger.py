@@ -27,6 +27,7 @@ _DOMAIN_FILES: dict[str, str] = {
     "relationship": "relationship.log",
     "member": "member.log",
     "moderation": "moderation.log",
+    "group_join": "group-join.log",
 }
 
 _initialized = False
@@ -67,6 +68,9 @@ def setup_logging() -> None:
 
     # moderation.log（仅 moderation 域）
     _add_file_handler("moderation", "moderation.log")
+
+    # group-join.log（仅 group_join 域）
+    _add_file_handler("group_join", "group-join.log")
 
     # 抑制第三方噪音
     logging.getLogger("nonebot").setLevel(logging.WARNING)

@@ -4,5 +4,7 @@
   "FRIEND_VERIFY_ANSWER": "",
   "SELF_MUTE_REPLIES": ["戴好了", "已老实", "知道了"],
   "URL_AUTOCOMPLETE_PREFIX": "https://www.nexusmods.com/skyrimspecialedition/mods/",
+  "GROUP_JOIN_REJECT_REASON": "非正常渠道入群，已驳回",
+  "GROUP_JOIN_AUTO_REJECT": false,
   "reload_marker": "初始版本"
 }

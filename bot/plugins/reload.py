@@ -13,6 +13,7 @@ from services.logger import get_logger
 from services import runtime_config
 from services import message_rule
 from services import shortcut
+from services import group_membership
 
 logger = get_logger("system")
 
@@ -40,6 +41,9 @@ async def handle_reload(bot: Bot, event: MessageEvent):
         lines.append("✓ shortcuts.json")
     else:
         lines.append(f"✗ shortcuts.json（{err}）")
+
+    # 4. 清空群成员缓存（中转群配置可能变更）
+    group_membership.clear_cache()
 
     await bot.send(event, "\n".join(lines))
 

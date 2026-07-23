@@ -40,6 +40,9 @@ BOT_QQ = int(os.getenv("BOT_QQ", "0"))
 
 # 图片投稿
 MANAGED_GROUPS: list[int] = [int(x.strip()) for x in os.getenv("MANAGED_GROUPS", "").split(",") if x.strip()]
+
+# 中转群号（加群审核：申请人需在此群才允许加入受管理群）
+TRANSIT_GROUP = int(os.getenv("TRANSIT_GROUP", "0"))
 IMAGE_MAX_FILE_SIZE = int(os.getenv("IMAGE_MAX_FILE_SIZE", "20"))
 IMAGE_CACHE_MAX_MB = int(os.getenv("IMAGE_CACHE_MAX_MB", "500"))
 IMAGE_MAX_PIXELS = int(os.getenv("IMAGE_MAX_PIXELS", "20000000"))
