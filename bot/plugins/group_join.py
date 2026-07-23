@@ -18,6 +18,7 @@ from dataclasses import dataclass
 
 from nonebot import on_request
 from nonebot.adapters.onebot.v11 import Bot, GroupRequestEvent, MessageEvent
+from nonebot.message import event_preprocessor
 
 from services.command import register
 from services.config import MANAGED_GROUPS, TRANSIT_GROUP
@@ -26,6 +27,24 @@ from services.group_membership import is_member, get_cache_info
 from services.logger import get_logger
 
 logger = get_logger("group_join")
+
+
+# === 临时诊断：拦截所有事件，打印 request 类型事件 ===
+@event_preprocessor
+async def _debug_log_all_events(bot: Bot, event):
+    """临时诊断钩子：确认 NoneBot2 是否收到 request 事件"""
+    post_type = getattr(event, "post_type", None)
+    if post_type == "request":
+        request_type = getattr(event, "request_type", "?")
+        sub_type = getattr(event, "sub_type", "?")
+        group_id = getattr(event, "group_id", 0)
+        user_id = getattr(event, "user_id", 0)
+        logger.warning(
+            f"[诊断] 收到 request 事件: request_type={request_type} "
+            f"sub_type={sub_type} group={group_id} user={user_id} "
+            f"event_class={type(event).__name__}"
+        )
+
 
 group_req = on_request(priority=5)
 
