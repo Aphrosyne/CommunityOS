@@ -16,9 +16,8 @@
 import time
 from dataclasses import dataclass
 
-from nonebot import on_request
-from nonebot.adapters.onebot.v11 import Bot, GroupRequestEvent, MessageEvent
-from nonebot.message import event_preprocessor
+from nonebot import on_request, on_notice, on_message, on, get_driver
+from nonebot.adapters.onebot.v11 import Bot, GroupRequestEvent, MessageEvent, NoticeEvent, RequestEvent
 
 from services.command import register
 from services.config import MANAGED_GROUPS, TRANSIT_GROUP
@@ -29,24 +28,51 @@ from services.logger import get_logger
 logger = get_logger("group_join")
 
 
-# === 临时诊断：拦截所有事件，打印 request 类型事件 ===
-@event_preprocessor
-async def _debug_log_all_events(bot: Bot, event):
-    """临时诊断钩子：确认 NoneBot2 是否收到 request 事件"""
-    post_type = getattr(event, "post_type", None)
-    if post_type == "request":
-        request_type = getattr(event, "request_type", "?")
-        sub_type = getattr(event, "sub_type", "?")
-        group_id = getattr(event, "group_id", 0)
-        user_id = getattr(event, "user_id", 0)
-        logger.warning(
-            f"[诊断] 收到 request 事件: request_type={request_type} "
-            f"sub_type={sub_type} group={group_id} user={user_id} "
-            f"event_class={type(event).__name__}"
-        )
+# === 临时诊断：用 driver 钩子拦截最原始的 WebSocket 消息 ===
+_driver = get_driver()
 
 
-group_req = on_request(priority=5)
+@_driver.on_bot_connect
+async def _hook_bot_events(bot: Bot):
+    """bot 连接后，直接挂钩 bot 的事件处理方法，拦截所有原始事件"""
+    from nonebot.adapters.onebot.v11 import Bot as V11Bot
+
+    # 保存原始 handle_event 引用
+    original_handle_event = bot.handle_event
+
+    async def patched_handle_event(event):
+        # 拦截所有事件，打印 post_type
+        try:
+            post_type = event.get("post_type") if isinstance(event, dict) else getattr(event, "post_type", "?")
+            if post_type in ("request", "notice", "meta_event"):
+                logger.warning(
+                    f"[诊断-raw] post_type={post_type} "
+                    f"raw={event if isinstance(event, dict) else vars(event)}"
+                )
+        except Exception as e:
+            logger.warning(f"[诊断-raw] 读取失败: {e}")
+        # 调用原始处理
+        await original_handle_event(event)
+
+    # 替换 bot 的 handle_event 方法
+    bot.handle_event = patched_handle_event
+    logger.warning("[诊断] 已挂钩 bot.handle_event 拦截所有原始事件")
+
+
+group_req = on_request(priority=5, block=False)
+
+# 兜底：监听所有 notice（防止 NapCat 把加群请求错归类）
+_debug_notice = on_notice(priority=1, block=False)
+
+
+@_debug_notice.handle()
+async def _debug_notice_handler(bot: Bot, event: NoticeEvent):
+    """记录所有 notice 事件，排查加群申请是否被归为 notice"""
+    logger.warning(
+        f"[诊断-notice] type={type(event).__name__} "
+        f"notice_type={getattr(event, 'notice_type', '?')} "
+        f"sub_type={getattr(event, 'sub_type', '?')}"
+    )
 
 
 @dataclass
