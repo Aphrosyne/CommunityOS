@@ -220,3 +220,32 @@ register(
     hidden=True,
     accepts_args=False,
 )
+
+
+async def handle_debug_group_msg(bot: Bot, event: MessageEvent):
+    """临时诊断：调用 get_group_system_msg 查看群系统消息"""
+    msg = event.get_plaintext().strip().split()
+    if len(msg) < 2:
+        await bot.send(event, "用法: debug_group_msg <群号>")
+        return
+    try:
+        group_id = int(msg[1])
+    except ValueError:
+        await bot.send(event, "群号无效")
+        return
+
+    try:
+        result = await bot.call_api("get_group_system_msg", group_id=group_id)
+        await bot.send(event, f"群 {group_id} 系统消息:\n{result}")
+    except Exception as e:
+        await bot.send(event, f"调用失败: {type(e).__name__}: {e}")
+
+
+register(
+    "debug_group_msg", handle_debug_group_msg,
+    description="查看群系统消息",
+    permission=2,
+    cooldown_level=2,
+    hidden=True,
+    accepts_args=True,
+)
