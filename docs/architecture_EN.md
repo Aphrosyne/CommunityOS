@@ -1,8 +1,8 @@
 # CommunityOS Architecture
 
 > **Status:** Stable
-> **Version:** v1.0
-> **Last Updated:** 2026-07-04
+> **Version:** v1.1
+> **Last Updated:** 2026-07-27
 
 ---
 
@@ -46,18 +46,22 @@ Any new functionality should minimize impact on existing modules.
                         │
               Command System
                         │
-                Platform Adapter
-                        │
-                    NapCat / QQ
+        ┌───────────────┼───────────────┐
+        │                               │
+        ▼                               ▼
+  Platform Adapter                   WebUI
+        │                               │
+    NapCat / QQ                  Browser (LAN)
 ```
 
-CommunityOS is divided into six main layers:
+CommunityOS is divided into six main layers, plus a WebUI entry point:
 
 * Message Rule Service — unified group message entry, rule matching & routing
 * Services — reusable shared capabilities
 * Plugins — business feature implementation
 * Command System — command registration, permission check, cooldown, dispatch
 * Platform Adapter — communication with chat platforms
+* WebUI — lightweight FastAPI-based admin panel, LAN access
 
 ---
 
@@ -165,6 +169,74 @@ No business logic should be written in the Platform Adapter.
 
 ---
 
+# WebUI
+
+CommunityOS includes a lightweight FastAPI-based admin panel with zero additional dependencies (FastAPI ships with NoneBot2).
+
+Design principles:
+
+* Observe and trigger only — never inserts into the message processing pipeline
+* All operations go through existing Service layer, never bypass plugins
+* Browser requests and QQ messages share the same asyncio event loop, never blocking passive functionality
+
+Current features:
+
+* System runtime status
+* Loaded plugin list
+* Real-time log file viewer
+* Hot-reload shortcuts, keywords, and runtime config
+
+Access:
+
+* Auto-mounted at bot startup
+* Open `http://<bot-IP>:8080/ui/` from any device on the LAN
+
+---
+
+# Testing Architecture
+
+CommunityOS uses a two-layer testing strategy, prioritizing core service stability and avoiding QQ environment dependencies.
+
+## Unit Tests
+
+Targets:
+
+* Permission Service
+* Command Parser
+* Cooldown system
+* Cache Service
+
+Characteristics:
+
+* Pure function tests — no bot startup required
+* No dependency on NoneBot2, NapCat, or QQ
+* `pytest` directly, sub-second feedback
+
+## Integration Tests
+
+Test chain:
+
+```text
+Construct Mock Event → Plugin handler → Service call → Verify result
+```
+
+Characteristics:
+
+* Construct fake events using NoneBot2's pydantic event models
+* Mock `bot.send()` and platform APIs — no real QQ connection
+* Cover single-step command core paths (help, status, mute, etc.)
+* Multi-step session tests deferred
+
+Directory layout:
+
+```text
+tests/
+├── unit/           # Pure function unit tests
+└── integration/    # Mock event integration tests
+```
+
+---
+
 # Request Flow
 
 Group message flow:
@@ -193,6 +265,26 @@ QQ Group
 ```
 
 Private messages go directly to the Command System.
+
+WebUI request flow:
+
+```text
+Browser (LAN)
+
+↓
+
+FastAPI /ui/api/*
+
+↓
+
+Core / Service (in-process function call)
+
+↓
+
+JSON Response
+```
+
+All WebUI operations use the same Service layer as QQ commands. HTTP requests and QQ messages share the same asyncio event loop — browser interactions never block passive bot functionality.
 
 ---
 
@@ -269,6 +361,7 @@ bot/
 ├── core/               # Startup & lifecycle hooks
 ├── services/           # Shared services
 ├── plugins/            # Business plugins
+├── ui/                 # WebUI static files & API
 ├── config/             # Config files (.json, gitignored)
 ├── data/               # Runtime data (gitignored)
 ├── logs/               # Log files (gitignored)
@@ -278,6 +371,10 @@ bot/
 ├── setup.bat           # One-click setup
 ├── start.bat           # One-click start
 └── requirements.txt    # Python dependencies
+
+tests/
+├── unit/               # Unit tests (pure functions)
+└── integration/        # Integration tests (mock events)
 ```
 
 Each directory has a clearly defined responsibility.
@@ -308,6 +405,8 @@ This document does not cover:
 * Plugin internals
 * Image processing workflow (see `image-pipeline.md`)
 * Command system details (see `command-system.md`)
+* WebUI design & API (see `webui.md`)
+* Testing strategy & conventions (see `testing.md`)
 * Database design
 
 These topics are documented elsewhere.

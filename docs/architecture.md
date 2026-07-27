@@ -1,8 +1,8 @@
 # CommunityOS 总体架构
 
 > **状态：** 正式
-> **版本：** v1.0
-> **最后更新：** 2026-07-04
+> **版本：** v1.1
+> **最后更新：** 2026-07-27
 
 ---
 
@@ -46,18 +46,22 @@ CommunityOS 的架构目标：
                         │
                  指令系统 (Command System)
                         │
-               平台适配层 (Platform Adapter)
-                        │
-                    NapCat / QQ
+        ┌───────────────┼───────────────┐
+        │                               │
+        ▼                               ▼
+ 平台适配层 (Platform Adapter)    WebUI (管理面板)
+        │                               │
+    NapCat / QQ                   浏览器 (局域网)
 ```
 
-CommunityOS 分为六个主要层次：
+CommunityOS 分为六个主要层次，外加一个 WebUI 入口：
 
 - 消息规则服务（Message Rule Service）— 群消息统一入口，规则匹配与路由
 - 公共服务（Services）— 可复用的通用能力
 - 插件（Plugins）— 业务功能实现
 - 指令系统（Command System）— 命令注册、权限检查、冷却、分发
 - 平台适配层（Platform Adapter）— 与聊天平台通信
+- WebUI — 基于 FastAPI 的轻量管理面板，局域网访问
 
 ---
 
@@ -165,6 +169,74 @@ plugins/
 
 ---
 
+# WebUI
+
+CommunityOS 提供基于 FastAPI 的轻量管理面板，零额外依赖（NoneBot2 已自带 FastAPI）。
+
+设计原则：
+
+- 只做观察与触发，不插入消息处理链路
+- 所有操作通过现有 Service 层，不绕过插件体系
+- 浏览器请求和 QQ 消息共享同一个 asyncio 事件循环，不阻塞被动功能
+
+当前功能：
+
+- 系统运行状态查看
+- 已加载插件列表
+- 日志文件实时查看
+- 快捷键 / 关键词 / 运行时配置热重载
+
+访问方式：
+
+- 机器人启动后自动挂载
+- 局域网内浏览器打开 `http://<机器人IP>:8080/ui/`
+
+---
+
+# 测试架构
+
+CommunityOS 采用双层测试策略，优先保证核心服务稳定，避免 QQ 环境依赖。
+
+## 单元测试
+
+测试对象：
+
+- 权限服务（Permission Service）
+- 指令解析器（Command Parser）
+- 冷却系统（Cooldown）
+- 缓存服务（Cache Service）
+
+特点：
+
+- 纯函数测试，不启动机器人
+- 不依赖 NoneBot2、NapCat 或 QQ
+- `pytest` 直接运行，秒级反馈
+
+## 集成测试
+
+测试链路：
+
+```text
+构造 Mock 事件 → Plugin handler → Service 调用 → 验证结果
+```
+
+特点：
+
+- 使用 NoneBot2 的 pydantic 事件模型构造假事件
+- Mock `bot.send()` 和平台 API，不连接真实 QQ
+- 覆盖单步指令核心链路（help、status、mute 等）
+- 多步会话测试暂缓
+
+目录结构：
+
+```text
+tests/
+├── unit/           # 纯函数单元测试
+└── integration/    # Mock 事件集成测试
+```
+
+---
+
 # 请求流程
 
 群消息典型流程：
@@ -193,6 +265,26 @@ QQ 群
 ```
 
 私聊消息直接由指令系统处理。
+
+WebUI 请求路径：
+
+```text
+浏览器 (局域网)
+
+↓
+
+FastAPI /ui/api/*
+
+↓
+
+Core / Service（同进程函数调用）
+
+↓
+
+JSON 返回
+```
+
+WebUI 的所有操作与 QQ 指令走相同的 Service 层，区别仅在于输入来源。HTTP 请求和 QQ 消息共享同一个 asyncio 事件循环，浏览器操作不会阻塞机器人被动功能。
 
 ---
 
@@ -269,6 +361,7 @@ bot/
 ├── core/               # 启动与生命周期钩子
 ├── services/           # 公共服务
 ├── plugins/            # 业务插件
+├── ui/                 # WebUI 静态文件与 API
 ├── config/             # 配置文件（.json，gitignored）
 ├── data/               # 运行时数据（gitignored）
 ├── logs/               # 日志文件（gitignored）
@@ -278,6 +371,10 @@ bot/
 ├── setup.bat           # 一键安装
 ├── start.bat           # 一键启动
 └── requirements.txt    # Python 依赖
+
+tests/
+├── unit/               # 单元测试（纯函数）
+└── integration/        # 集成测试（Mock 事件）
 ```
 
 每个目录职责明确。
@@ -308,6 +405,8 @@ CommunityOS 在开发过程中遵循以下原则：
 - 插件内部实现
 - 图片处理流程（见 `image-pipeline.md`）
 - 指令系统细节（见 `command-system.md`）
+- WebUI 设计与 API（见 `webui.md`）
+- 测试策略与规范（见 `testing.md`）
 - 数据库设计
 
 上述内容将在对应文档中说明。
