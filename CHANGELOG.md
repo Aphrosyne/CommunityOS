@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/lang/zh-CN/
 
 ## [Unreleased]
 
+### Added
+
+- Database Round 4 审核日志结构化记录：新增 `DatabaseManager.log_moderation()` Repository 函数（含模块级委托），`mute.py`（禁言/解禁/自禁/拒绝禁言）、`auto_recall.py`（违禁词自动撤回成功与失败）、`admin.py`（权限设置成功与拒绝）接入写入 `moderation_log` 表。
+- `moderation_log` 写入支持 `details` 字段 JSON 序列化（`json.dumps(ensure_ascii=False, default=str)`），`details=None` 写入 NULL；运行时 DB 写入失败仅记日志不抛出，不影响业务流程。
+- 新增 `tests/unit/test_moderation_log.py`（11 个用例）：覆盖正常写入、系统操作（operator_id=0）、全局权限记录、details=NULL、JSON 序列化往返、不存在 user_id/operator_id 仍能写入、多记录排序、全 action 值域、按用户/群/action 查询。
+
+### Changed
+
+- `bot/migrations/001_create_tables.sql`：移除 `moderation_log` 表 `user_id`、`operator_id` 的外键约束（Q1-A）。审计日志优先级高于数据完整性约束，保证被操作用户不存在或系统操作（operator_id=0）时仍能写入。
+- `docs/design/database.md`：§3.2 `moderation_log` 更新 action 值域（mute/unmute/mute_denied/auto_recall/permission_set/permission_denied），补充无 FK 约束、JSON details、不记录常规权限拒绝的设计说明；§5 修正迁移文件名；§6 接入计划对齐 database-roadmap.md（Round 3=权限系统，Round 4=审核日志）。
+
 ---
 
 ## [1.1.1] - 2026-07-08

@@ -28,6 +28,28 @@ logger = get_logger("command")
 m_log = get_logger("moderation")
 
 
+async def _log_mod(
+    action: str,
+    user_id: int,
+    operator_id: int,
+    group_id: int,
+    reason: str | None = None,
+    details: dict | None = None,
+) -> None:
+    """写入审核日志到 DB，失败仅记日志不抛出（Q4-A）"""
+    try:
+        await database.log_moderation(
+            action=action,
+            user_id=user_id,
+            operator_id=operator_id,
+            group_id=group_id,
+            reason=reason,
+            details=details,
+        )
+    except Exception:
+        m_log.exception(f"DB 写入失败: moderation_log action={action}")
+
+
 async def _resolve_target(event: MessageEvent) -> int | None:
     """从消息中提取 @目标 user_id，无则返回 None"""
     for seg in event.message:
@@ -53,6 +75,11 @@ async def _apply(
             f"action=permission_denied operator={operator_id} "
             f"target={target_id} result=denied reason=target_is_owner"
         )
+        await _log_mod(
+            "permission_denied", target_id, operator_id, 0,
+            reason="target_is_owner",
+            details={"result": "denied"},
+        )
         return
 
     try:
@@ -75,6 +102,11 @@ async def _apply(
     m_log.info(
         f"action=permission_set operator={operator_id} target={target_id} "
         f"level={level} result=success"
+    )
+    await _log_mod(
+        "permission_set", target_id, operator_id, 0,
+        reason=f"{label} by {operator_id}",
+        details={"level": level, "label": label, "result": "success"},
     )
 
 

@@ -41,6 +41,10 @@ CREATE TABLE IF NOT EXISTS user_permissions (
 );
 
 -- moderation_log — 审核记录
+-- Q1-A: 不添加 FK 约束。审计日志优先级高于数据完整性约束：
+--   - 被操作用户可能不存在于 users 表
+--   - operator_id 可能为系统操作（0），无法满足 FK
+--   - 日志写入尽可能成功，不因用户不存在而失败
 CREATE TABLE IF NOT EXISTS moderation_log (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id     INTEGER,
@@ -49,9 +53,7 @@ CREATE TABLE IF NOT EXISTS moderation_log (
     action      TEXT NOT NULL,
     reason      TEXT,
     timestamp   TEXT NOT NULL,
-    details     TEXT,
-    FOREIGN KEY (user_id)     REFERENCES users (user_id),
-    FOREIGN KEY (operator_id) REFERENCES users (user_id)
+    details     TEXT
 );
 
 -- command_log — 指令记录（查询层，文本日志保留）

@@ -24,6 +24,7 @@
 """
 from __future__ import annotations
 
+import json
 from datetime import datetime
 from pathlib import Path
 
@@ -302,6 +303,51 @@ class DatabaseManager:
             row = await cur.fetchone()
         return row[0] if row[0] is not None else 0
 
+    async def log_moderation(
+        self,
+        action: str,
+        user_id: int,
+        operator_id: int,
+        group_id: int,
+        reason: str | None = None,
+        details: dict | None = None,
+    ) -> None:
+        """写入审核日志记录
+
+        审计日志优先级高于数据完整性约束：
+            - 不做 FK 约束（user_id/operator_id 可能为不存在用户或 0=系统操作）
+            - 不 upsert 用户，保证日志写入尽可能成功（Q1-A）
+
+        action 值域（Q2-A，与文本日志一致）:
+            mute / unmute / mute_denied / auto_recall /
+            permission_set / permission_denied
+
+        details: dict → JSON 字符串（Q5-A），None → NULL
+
+        运行时失败：抛异常给调用方（见文件头 Q6 策略）。
+        """
+        assert self._conn is not None
+        details_json = (
+            json.dumps(details, ensure_ascii=False, default=str)
+            if details is not None
+            else None
+        )
+        await self._conn.execute(
+            "INSERT INTO moderation_log "
+            "(action, user_id, operator_id, group_id, reason, details, timestamp) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (
+                action,
+                user_id,
+                operator_id,
+                group_id,
+                reason,
+                details_json,
+                _now_iso(),
+            ),
+        )
+        await self._conn.commit()
+
 
 # 模块级单例
 _manager: DatabaseManager = DatabaseManager()
@@ -351,6 +397,20 @@ async def set_permission(
 async def get_permission(user_id: int, group_id: int) -> int:
     """获取用户在某群的有效权限等级（委托给单例）"""
     return await _manager.get_permission(user_id, group_id)
+
+
+async def log_moderation(
+    action: str,
+    user_id: int,
+    operator_id: int,
+    group_id: int,
+    reason: str | None = None,
+    details: dict | None = None,
+) -> None:
+    """写入审核日志记录（委托给单例）"""
+    await _manager.log_moderation(
+        action, user_id, operator_id, group_id, reason, details
+    )
 
 
 def _now_iso() -> str:
