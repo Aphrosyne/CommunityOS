@@ -3,7 +3,8 @@ import re
 
 from nonebot.adapters.onebot.v11 import Bot, MessageEvent
 
-from services.command import register
+from services.command import register, CooldownTier
+from services.permission import Level
 from services.shortcut import list as list_shortcuts
 
 
@@ -51,7 +52,7 @@ async def handle_shortcuts(bot: Bot, event: MessageEvent):
 register(
     "shortcuts", handle_shortcuts,
     description="列出快捷映射",
-    permission=1,
+    permission=Level.BotAdmin,
     aliases=["映射"],
     hidden=True,
 )

@@ -15,7 +15,7 @@ from nonebot import on_message
 from nonebot.adapters.onebot.v11 import Bot, MessageEvent, MessageSegment
 from PIL import Image as PILImage
 
-from services.command import register
+from services.command import register, CooldownTier
 from services.config import (
     IMAGE_DIR,
     PUBLISH_COOLDOWN_BASE,
@@ -67,7 +67,7 @@ async def handle_decode(bot: Bot, event: MessageEvent):
         return
 
     # 冷却检查（Owner 豁免）
-    if not is_owner(event.user_id):
+    if not await is_owner(event.user_id):
         expires = _cd_expires.get(event.user_id, 0)
         if time.time() < expires:
             remaining = int(expires - time.time())
@@ -94,7 +94,7 @@ register(
     "decode", handle_decode,
     description="私聊图片解混淆",
     aliases=["解图"],
-    cooldown_level=1,
+    cooldown_level=CooldownTier.Session,
 )
 
 # ── 会话消息拦截 ──
@@ -346,7 +346,7 @@ async def _handle_group_decode_locked(bot: Bot, event: MessageEvent):
     user_id = event.user_id
 
     # 冷却检查（Owner 豁免）
-    if not is_owner(user_id):
+    if not await is_owner(user_id):
         expires = _cd_expires.get(user_id, 0)
         if time.time() < expires:
             return  # 静默
@@ -395,7 +395,7 @@ async def _handle_group_decode_locked(bot: Bot, event: MessageEvent):
 async def _auto_decode(bot: Bot, event: MessageEvent):
     """私聊中检测到 [解图] 标记 + 图片 → 即时解混淆"""
     # 冷却检查（Owner 豁免）
-    if not is_owner(event.user_id):
+    if not await is_owner(event.user_id):
         expires = _cd_expires.get(event.user_id, 0)
         if time.time() < expires:
             return  # 静默

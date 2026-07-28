@@ -235,6 +235,73 @@ class DatabaseManager:
 
         await self._conn.commit()
 
+    async def set_permission(
+        self,
+        user_id: int,
+        group_id: int,
+        level: int,
+        granted_by: int | None = None,
+        expires_at: str | None = None,
+        reason: str | None = None,
+    ) -> None:
+        """设置用户权限等级（UPSERT 语义，Q11 单等级覆盖）
+
+        高级覆盖低级：先删除该用户在该 group_id 的所有权限记录，
+        再插入新 level（level=0 时不插入，等价于无记录）。
+
+        group_id=0 表示全局生效（Q11-C）。
+        level 值域: -1(黑名单) ~ 9(Owner)，见 database.md §3.1。
+
+        运行时失败：抛异常给调用方（见文件头 Q6 策略）。
+        """
+        assert self._conn is not None
+        await self.upsert_user(user_id)  # 保证 FK (user_id)
+        if granted_by is not None:
+            await self.upsert_user(granted_by)  # 保证 FK (granted_by)
+        now = _now_iso()
+
+        # 删除旧权限记录（覆盖语义）
+        await self._conn.execute(
+            "DELETE FROM user_permissions "
+            "WHERE user_id = ? AND group_id = ?",
+            (user_id, group_id),
+        )
+
+        # level=0 等于无记录，不插入
+        if level != 0:
+            await self._conn.execute(
+                "INSERT INTO user_permissions "
+                "(user_id, group_id, level, granted_by, granted_at, "
+                " expires_at, reason) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (user_id, group_id, level, granted_by, now, expires_at, reason),
+            )
+
+        await self._conn.commit()
+
+    async def get_permission(
+        self, user_id: int, group_id: int
+    ) -> int:
+        """获取用户在某群的有效权限等级
+
+        查询全局(group_id=0) + 群级(group_id=?) 的最高 level。
+        过期权限自动失效（expires_at < now 则忽略）。
+        无记录返回 0（普通用户）。
+
+        Q6-A: 过期比较用 Python 端 now_iso，避免 SQLite datetime('now')
+        与 ISO 8601 含时区格式的兼容问题。
+        """
+        assert self._conn is not None
+        now = _now_iso()
+        async with self._conn.execute(
+            "SELECT MAX(level) FROM user_permissions "
+            "WHERE user_id = ? AND group_id IN (0, ?) "
+            "  AND (expires_at IS NULL OR expires_at > ?)",
+            (user_id, group_id, now),
+        ) as cur:
+            row = await cur.fetchone()
+        return row[0] if row[0] is not None else 0
+
 
 # 模块级单例
 _manager: DatabaseManager = DatabaseManager()
@@ -265,6 +332,25 @@ async def record_membership(
 ) -> None:
     """记录群成员关系变更（委托给单例）"""
     await _manager.record_membership(user_id, group_id, event)
+
+
+async def set_permission(
+    user_id: int,
+    group_id: int,
+    level: int,
+    granted_by: int | None = None,
+    expires_at: str | None = None,
+    reason: str | None = None,
+) -> None:
+    """设置用户权限等级（委托给单例）"""
+    await _manager.set_permission(
+        user_id, group_id, level, granted_by, expires_at, reason
+    )
+
+
+async def get_permission(user_id: int, group_id: int) -> int:
+    """获取用户在某群的有效权限等级（委托给单例）"""
+    return await _manager.get_permission(user_id, group_id)
 
 
 def _now_iso() -> str:

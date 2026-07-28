@@ -6,6 +6,7 @@ Message Rule Service — 群消息规则匹配与路由
 """
 from services.command import get as get_command, matches_args
 from services.config import MANAGED_GROUPS
+from services.permission import Level
 from services.shortcut import match as shortcut_match
 from services.logger import get_logger
 
@@ -33,7 +34,7 @@ def check_command(msg_type: str, group_id: int, to_me: bool, text: str) -> bool:
     words = actual.split()
     word = words[0].lower()
     cmd = get_command(word)
-    if not cmd or cmd.get("permission", 0) >= 2:
+    if not cmd or cmd.get("permission", 0) >= Level.BotAdmin:
         return False
 
     # 无 @ 路径精确匹配规则（设计文档 4.2）：

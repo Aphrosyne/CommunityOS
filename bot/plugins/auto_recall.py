@@ -4,10 +4,10 @@ import time
 from nonebot import on_message
 from nonebot.adapters.onebot.v11 import Bot, MessageEvent
 
-from services.command import register
+from services.command import register, CooldownTier
 from services.config import MANAGED_GROUPS
 from services.message_rule import check_keywords, list_keywords
-from services.permission import is_owner
+from services.permission import Level, is_owner
 from services.logger import get_logger
 
 m_log = get_logger("moderation")
@@ -31,7 +31,7 @@ async def handle_keywords(bot: Bot, event: MessageEvent):
 register(
     "keywords", handle_keywords,
     description="列出违禁词",
-    permission=1,
+    permission=Level.BotAdmin,
     aliases=["违禁词"],
     hidden=True,
 )
@@ -48,7 +48,7 @@ async def handle_auto_mod(bot: Bot, event: MessageEvent):
     if group_id not in MANAGED_GROUPS:
         return
 
-    if is_owner(event.user_id):
+    if await is_owner(event.user_id):
         return
 
     # 冷却检查

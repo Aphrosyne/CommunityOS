@@ -6,8 +6,9 @@ import re
 
 from nonebot.adapters.onebot.v11 import Bot, MessageEvent, MessageSegment
 
-from services.command import register
-from services.config import OWNER
+from services.command import register, CooldownTier
+from services.permission import Level
+from services.permission import is_owner
 from services.runtime_config import get as get_runtime_config
 from services.logger import get_logger
 
@@ -103,7 +104,7 @@ async def handle_mute(bot: Bot, event: MessageEvent):
             return
         target_id = int(targets[0].data["qq"])
 
-        if target_id == OWNER:
+        if await is_owner(target_id):
             m_log.info(
                 f"action=mute_denied operator={operator_id} group={group_id} "
                 f"target={target_id} result=denied reason=target_is_owner"
@@ -185,14 +186,14 @@ async def handle_self_mute(bot: Bot, event: MessageEvent):
 
 register(
     "mute", handle_mute,
-    permission=1, cooldown_level=2, hidden=True,
+    permission=Level.BotAdmin, cooldown_level=CooldownTier.Admin, hidden=True,
     aliases=["禁言", "解除"],
     accepts_args=True, group_only=True,
 )
 register(
     "self_mute", handle_self_mute,
     description="随机自禁言",
-    permission=0, cooldown_level=0,
+    permission=Level.User, cooldown_level=CooldownTier.Query,
     aliases=["自禁"],
     accepts_args=True, group_only=True,
 )

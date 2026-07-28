@@ -16,7 +16,7 @@ from nonebot.typing import T_State
 
 from services.command import get as get_command, matches_args
 from services.config import COMMAND_COOLDOWNS
-from services.permission import check as check_permission, is_owner
+from services.permission import check as check_permission, is_owner, is_blacklisted
 from services.shortcut import match as shortcut_match
 from services.message_rule import check_command
 from services.logger import get_logger
@@ -92,8 +92,12 @@ async def dispatch(bot: Bot, event: MessageEvent, state: T_State):
     if cmd.get("group_only") and event.message_type != "group":
         return
 
+    # 黑名单拦截（Q8-A: 静默忽略，不消耗冷却）
+    if await is_blacklisted(user_id, group_id):
+        return
+
     # 冷却检查（Owner 豁免，分群独立）
-    if not is_owner(user_id):
+    if not await is_owner(user_id):
         level = cmd["cooldown_level"]
         cd_seconds = COMMAND_COOLDOWNS.get(level, 5)
         now = time.time()
@@ -104,8 +108,8 @@ async def dispatch(bot: Bot, event: MessageEvent, state: T_State):
             return  # 冷却期静默
         user_cd[level] = now
 
-    # 权限检查（Bot Admin，非 QQ 群管理员）
-    if not check_permission(user_id, cmd["permission"]):
+    # 权限检查（基于数据库，Q5-A fail-closed）
+    if not await check_permission(user_id, group_id, cmd["permission"]):
         logger.info(f"用户 {user_id} 权限不足，拒绝执行 {cmd_name} (需要 {cmd['permission']})")
         _mod_log.info(
             f"action=permission_denied operator={user_id} "

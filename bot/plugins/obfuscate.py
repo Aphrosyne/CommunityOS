@@ -14,7 +14,7 @@ from nonebot import on_message
 from nonebot.adapters.onebot.v11 import Bot, MessageEvent, MessageSegment
 from PIL import Image as PILImage
 
-from services.command import register
+from services.command import register, CooldownTier
 from services.config import (
     IMAGE_DIR,
     PUBLISH_COOLDOWN_BASE,
@@ -66,7 +66,7 @@ async def handle_obfuscate(bot: Bot, event: MessageEvent):
         return
 
     # 冷却检查（Owner 豁免）
-    if not is_owner(event.user_id):
+    if not await is_owner(event.user_id):
         expires = _cd_expires.get(event.user_id, 0)
         if time.time() < expires:
             remaining = int(expires - time.time())
@@ -92,7 +92,7 @@ register(
     "obfuscate", handle_obfuscate,
     description="私聊图片混淆",
     aliases=["混淆"],
-    cooldown_level=1,
+    cooldown_level=CooldownTier.Session,
 )
 
 # ── 会话消息拦截 ──

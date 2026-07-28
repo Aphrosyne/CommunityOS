@@ -12,6 +12,14 @@ from services.logger import get_logger
 
 logger = get_logger(__name__)
 
+
+class CooldownTier:
+    """冷却等级（对应 config.py 的 COMMAND_COOLDOWNS 索引）"""
+    Query = 0      # 查询类命令（默认）
+    Session = 1    # 会话启动类（如发布/混淆/解图）
+    Admin = 2      # 管理类（如禁言/重载）
+
+
 # {name: {handler, description}}
 _commands: dict[str, dict[str, Any]] = {}
 
@@ -42,7 +50,7 @@ def register(
         description: 命令简短说明，help 中展示
         aliases: 别名列表（如 ["帮助"]），可选
         help_text: 详细帮助说明（如 "帮助 xxx" 时展示），可选
-        permission: 最低权限等级（0=User, 1=BotAdmin, 2=Owner），默认 0
+        permission: 最低权限等级（-1=黑名单, 0=User, 1=Whitelist, 3=BotAdmin, 9=Owner），默认 0
         cooldown_level: 冷却等级（0=查询, 1=会话启动, 2=管理），默认 0
         hidden: 是否在 help 中隐藏，默认 False
         accepts_args: 参数规则。False 时必须纯指令触发（消息全文等于命令名/别名）；

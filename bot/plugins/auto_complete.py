@@ -1,7 +1,8 @@
 """网址自动补全 — 尾号 N网 Mod ID"""
 from nonebot.adapters.onebot.v11 import Bot, MessageEvent
 
-from services.command import register
+from services.command import register, CooldownTier
+from services.permission import Level
 from services.runtime_config import get as get_runtime_config
 
 
@@ -25,7 +26,7 @@ async def handle_autocomplete(bot: Bot, event: MessageEvent):
 register(
     "autocomplete", handle_autocomplete,
     description="补全网址",
-    permission=0,
+    permission=Level.User,
     aliases=["尾号"],
     accepts_args=True,
 )

@@ -8,7 +8,8 @@
 """
 from nonebot.adapters.onebot.v11 import Bot, MessageEvent
 
-from services.command import register
+from services.command import register, CooldownTier
+from services.permission import Level
 from services.logger import get_logger
 from services import runtime_config
 from services import message_rule
@@ -48,8 +49,8 @@ register(
     "reload", handle_reload,
     description="重载配置",
     aliases=["重载"],
-    permission=2,
-    cooldown_level=2,
+    permission=Level.BotAdmin,
+    cooldown_level=CooldownTier.Admin,
     hidden=True,
     accepts_args=False,
 )

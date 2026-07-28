@@ -19,6 +19,8 @@ async def on_startup():
     mark_start()
     add_interval_job(run_cleanup, seconds=600, job_id="cleanup")
     await database.setup()
+    from services.permission import seed_from_env
+    await seed_from_env()
 
 
 @driver.on_shutdown

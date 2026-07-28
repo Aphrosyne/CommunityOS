@@ -87,7 +87,7 @@ CommunityOS 分为七个主要层次：
 
 - 命令注册与别名管理
 - 命令冷却（三级：查询/会话/管理）
-- 命令权限检查（User/Admin/Owner）
+- 命令权限检查（9 级：-1 黑名单 → 9 Owner，基于数据库）
 - 快捷映射（shortcuts，全句 → 完整指令）
 - 命令分发与审计日志
 
@@ -102,7 +102,7 @@ CommunityOS 分为七个主要层次：
 - 日志（Logger Service）— 按领域分文件（bot/command/image/member/moderation/relationship）
 - 配置（Config Service）— 外部 `.env` 配置
 - 定时调度（Scheduler Service）— 基于 APScheduler
-- 权限（Permission Service）— 三级权限（User/Admin/Owner）
+- 权限（Permission Service）— 九级权限（-1 黑名单 → 9 Owner，基于数据库，.env 种子启动写入）
 - 会话（Session Service）— 多步交互流程管理
 - 节流（Throttle Service）— 按 (user_id, reply_type) 控制回复频率
 - 缓存（Cache Service）— 文件缓存，LRU 淘汰
