@@ -88,12 +88,20 @@ UNIQUE(user_id, group_id, level)
 |----|------|------|
 | id | INTEGER PRIMARY KEY AUTOINCREMENT | |
 | user_id | INTEGER | 被操作者 |
-| operator_id | INTEGER | 操作者 |
-| group_id | INTEGER | 在哪个群 |
-| action | TEXT NOT NULL | mute / unmute / kick / warn / blacklist_add / blacklist_remove / whitelist_add |
+| operator_id | INTEGER | 操作者（0 = 系统操作） |
+| group_id | INTEGER | 在哪个群（0 = 全局权限操作） |
+| action | TEXT NOT NULL | mute / unmute / mute_denied / auto_recall / permission_set / permission_denied |
 | reason | TEXT | 原因 |
 | timestamp | TEXT NOT NULL | 操作时间 |
-| details | TEXT | 附加信息（JSON） |
+| details | TEXT | 附加信息（JSON 字符串，见下方说明） |
+
+> **无外键约束（Q1-A）：** `user_id`、`operator_id` 不添加 `REFERENCES users(user_id)`。审计日志优先级高于数据完整性约束——被操作用户可能不存在于 `users` 表，`operator_id` 可能为系统操作（0），日志写入应尽可能成功，不因用户不存在而失败。写入逻辑（`log_moderation`）不调用 `upsert_user`。
+>
+> **action 值域（Q2-A）：** 沿用现有文本日志命名，保证数据库日志与 `moderation.log` 文本日志可互相对照：`mute` / `unmute` / `mute_denied` / `auto_recall` / `permission_set` / `permission_denied`。不重新设计命名，后续 UI 展示可再做映射。
+>
+> **details 字段格式（Q5-A）：** 以 JSON 字符串存储于 TEXT 列。写入前由 Python `json.dumps()` 序列化（`ensure_ascii=False, default=str`），读取时由 `json.loads()` 反序列化。`details=None` 写入 NULL。不新增 `duration`、`keywords` 等固定列。示例：`{"duration": 60, "type": "normal"}`。
+>
+> **不记录权限拒绝（Q3-A）：** `permission_denied` 仅在管理操作被拒绝时（如对 Owner 执行降级）记录；`command_dispatcher` 的常规权限拒绝不写入 `moderation_log`（高频正常事件，避免无意义记录），保留文本日志即可。
 
 ### command_log — 指令记录
 
@@ -157,8 +165,8 @@ WHERE gm.group_id = ?
 
 ```text
 bot/migrations/
-├── 001_initial.sql      # 建全部 5 张表 + 索引
-└── 002_xxx.sql          # 后续变更
+├── 001_create_tables.sql  # 建全部 5 张表 + 索引
+└── 002_xxx.sql            # 后续变更
 ```
 
 ## 执行
@@ -177,9 +185,12 @@ bot/migrations/
 |------|----------|--------|
 | 1 | — | 建表 + migration 框架 |
 | 2 | member.py, friend.py | users, group_memberships |
-| 3 | mute.py, auto_recall.py | moderation_log |
-| 4 | Permission Service | user_permissions（读写） |
+| 3 | Permission Service | user_permissions（读写） |
+| 4 | mute.py, auto_recall.py, admin.py | moderation_log |
 | 5 | command_dispatcher.py | command_log |
+| 6 | WebUI | 批量查询 API |
+
+> 详细任务拆分见 [database-roadmap.md](database-roadmap.md)。
 
 每轮独立提交，不影响现有功能。
 

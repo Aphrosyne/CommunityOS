@@ -8,7 +8,7 @@
 
 # 1. 概述
 
-本文档将 database.md 定义的设计拆分为 6 轮原子级任务。
+本文档将 database.md 定义的设计拆分为 5+1 轮原子级任务（Round 6 暂缓）。
 
 每轮任务为一个独立 commit，包含代码实现和对应的 pytest 测试。`pytest` 全绿才提交。
 
@@ -123,14 +123,13 @@
 
 ---
 
-## Round 6 — 批量操作与 WebUI
+## Round 6 — 批量查询 API（暂缓）
 
-**目标：** WebUI 可查询成员列表、执行批量清人。
+**目标：** 提供批量成员查询能力，供后续命令或 WebUI 使用。
 
 **实现：**
 
 - `database.py` 新增：`get_active_members(group_id) → list`、`get_kickable_members(group_id) → list`（level ≤ 0）
-- `/ui/api/members` 等 WebUI API 对接数据库查询
 - 批量清人豁免已在 Round 3 的 `user_permissions` 中天然支持
 
 **pytest：**
@@ -139,8 +138,9 @@
 
 **验证：**
 
-- 浏览器打开 WebUI 看到群成员列表
-- 白名单用户不在「可清退」列表中
+- 通过代码调用查询函数，验证返回结果正确
+
+> **此轮在 WebUI 实现后接入，当前暂缓执行。**
 
 ---
 

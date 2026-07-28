@@ -10,9 +10,32 @@ from services.command import register, CooldownTier
 from services.permission import Level
 from services.permission import is_owner
 from services.runtime_config import get as get_runtime_config
+from services import database
 from services.logger import get_logger
 
 m_log = get_logger("moderation")
+
+
+async def _log_mod(
+    action: str,
+    user_id: int,
+    operator_id: int,
+    group_id: int,
+    reason: str | None = None,
+    details: dict | None = None,
+) -> None:
+    """写入审核日志到 DB，失败仅记日志不抛出（Q4-A）"""
+    try:
+        await database.log_moderation(
+            action=action,
+            user_id=user_id,
+            operator_id=operator_id,
+            group_id=group_id,
+            reason=reason,
+            details=details,
+        )
+    except Exception:
+        m_log.exception(f"DB 写入失败: moderation_log action={action}")
 
 # 时间解析正则
 _TIME_RE = re.compile(
@@ -90,10 +113,20 @@ async def handle_mute(bot: Bot, event: MessageEvent):
                 f"action=unmute operator={operator_id} group={group_id} "
                 f"target={target_id} result=success"
             )
+            await _log_mod(
+                "unmute", target_id, operator_id, group_id,
+                reason="unmute",
+                details={"result": "success"},
+            )
         except Exception as e:
             m_log.info(
                 f"action=unmute operator={operator_id} group={group_id} "
                 f"target={target_id} result=failed reason={e}"
+            )
+            await _log_mod(
+                "unmute", target_id, operator_id, group_id,
+                reason="unmute",
+                details={"result": "failed", "error": str(e)},
             )
         return
 
@@ -108,6 +141,11 @@ async def handle_mute(bot: Bot, event: MessageEvent):
             m_log.info(
                 f"action=mute_denied operator={operator_id} group={group_id} "
                 f"target={target_id} result=denied reason=target_is_owner"
+            )
+            await _log_mod(
+                "mute_denied", target_id, operator_id, group_id,
+                reason="target_is_owner",
+                details={"result": "denied"},
             )
             return
 
@@ -134,6 +172,11 @@ async def handle_mute(bot: Bot, event: MessageEvent):
                 f"action=mute operator={operator_id} group={group_id} "
                 f"target={target_id} result=failed reason=bot_not_admin"
             )
+            await _log_mod(
+                "mute", target_id, operator_id, group_id,
+                reason="bot_not_admin",
+                details={"result": "failed", "duration": duration},
+            )
             return
 
         try:
@@ -142,10 +185,20 @@ async def handle_mute(bot: Bot, event: MessageEvent):
                 f"action=mute operator={operator_id} group={group_id} "
                 f"target={target_id} result=success duration={duration}s"
             )
+            await _log_mod(
+                "mute", target_id, operator_id, group_id,
+                reason="mute",
+                details={"duration": duration, "type": "normal", "result": "success"},
+            )
         except Exception as e:
             m_log.info(
                 f"action=mute operator={operator_id} group={group_id} "
                 f"target={target_id} result=failed reason={e}"
+            )
+            await _log_mod(
+                "mute", target_id, operator_id, group_id,
+                reason="mute",
+                details={"duration": duration, "type": "normal", "result": "failed", "error": str(e)},
             )
         return
 
@@ -173,6 +226,11 @@ async def handle_self_mute(bot: Bot, event: MessageEvent):
             f"action=mute operator={operator_id} group={group_id} "
             f"target={operator_id} result=success duration={duration}s type=self"
         )
+        await _log_mod(
+            "mute", operator_id, operator_id, group_id,
+            reason="self_mute",
+            details={"duration": duration, "type": "self", "result": "success"},
+        )
         replies = get_runtime_config("SELF_MUTE_REPLIES", [])
         if replies:
             msg = MessageSegment.at(operator_id) + MessageSegment.text(random.choice(replies))
@@ -181,6 +239,11 @@ async def handle_self_mute(bot: Bot, event: MessageEvent):
         m_log.info(
             f"action=mute operator={operator_id} group={group_id} "
             f"target={operator_id} result=failed reason={e} type=self"
+        )
+        await _log_mod(
+            "mute", operator_id, operator_id, group_id,
+            reason="self_mute",
+            details={"duration": duration, "type": "self", "result": "failed", "error": str(e)},
         )
 
 
