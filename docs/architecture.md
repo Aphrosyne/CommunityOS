@@ -1,7 +1,7 @@
 # CommunityOS 总体架构
 
 > **状态：** 正式
-> **版本：** v1.1
+> **版本：** v1.2
 > **最后更新：** 2026-07-27
 
 ---
@@ -44,24 +44,28 @@ CommunityOS 的架构目标：
         │               │               │
         └───────────────┼───────────────┘
                         │
-                 指令系统 (Command System)
-                        │
         ┌───────────────┼───────────────┐
-        │                               │
-        ▼                               ▼
- 平台适配层 (Platform Adapter)    WebUI (管理面板)
-        │                               │
-    NapCat / QQ                   浏览器 (局域网)
+        │               │               │
+        ▼               ▼               ▼
+   数据库 (SQLite)  指令系统         WebUI
+  (Database)    (Command System)  (管理面板)
+        │               │               │
+        └───────────────┼───────────────┘
+                        │
+               平台适配层 (Platform Adapter)
+                        │
+                    NapCat / QQ
 ```
 
-CommunityOS 分为六个主要层次，外加一个 WebUI 入口：
+CommunityOS 分为七个主要层次：
 
 - 消息规则服务（Message Rule Service）— 群消息统一入口，规则匹配与路由
 - 公共服务（Services）— 可复用的通用能力
 - 插件（Plugins）— 业务功能实现
+- 数据库（Database）— SQLite 结构化存储，成员/权限/审核记录
 - 指令系统（Command System）— 命令注册、权限检查、冷却、分发
-- 平台适配层（Platform Adapter）— 与聊天平台通信
 - WebUI — 基于 FastAPI 的轻量管理面板，局域网访问
+- 平台适配层（Platform Adapter）— 与聊天平台通信
 
 ---
 
@@ -103,12 +107,38 @@ CommunityOS 分为六个主要层次，外加一个 WebUI 入口：
 - 节流（Throttle Service）— 按 (user_id, reply_type) 控制回复频率
 - 缓存（Cache Service）— 文件缓存，LRU 淘汰
 - 运行时（Runtime Service）— 启动时间与运行状态
+- 数据库（Database Service）— SQLite 统一存储，aiosqlite 驱动
 
 公共服务不直接响应 QQ 消息。
 
 公共服务仅向插件提供能力。
 
 多个插件共享同一公共服务。
+
+---
+
+# 数据库
+
+CommunityOS 使用 SQLite 作为结构化存储。
+
+设计原则：
+
+- **单文件、零部署** — 数据文件为 `data/communityos.db`
+- **Raw SQL** — 无 ORM，依赖仅 `aiosqlite` 一个包
+- **不替代日志** — 文本日志保留作为调试备份
+- **不替代配置** — `.env` 和 `config/*.json` 保持现状
+
+核心表：
+
+| 表 | 用途 |
+|----|------|
+| users | 用户标识与首次出现记录 |
+| group_memberships | 群成员关系与进出历史 |
+| user_permissions | 统一权限（-1 黑名单 → 9 拥有者） |
+| moderation_log | 审核操作审计记录 |
+| command_log | 指令调用记录（查询层） |
+
+迁移脚本位于 `bot/migrations/`，启动时自动执行未应用的迁移。
 
 ---
 
@@ -362,6 +392,7 @@ bot/
 ├── services/           # 公共服务
 ├── plugins/            # 业务插件
 ├── ui/                 # WebUI 静态文件与 API
+├── migrations/         # 数据库迁移脚本（.sql）
 ├── config/             # 配置文件（.json，gitignored）
 ├── data/               # 运行时数据（gitignored）
 ├── logs/               # 日志文件（gitignored）
@@ -407,7 +438,7 @@ CommunityOS 在开发过程中遵循以下原则：
 - 指令系统细节（见 `command-system.md`）
 - WebUI 设计与 API（见 `webui.md`）
 - 测试策略与规范（见 `testing.md`）
-- 数据库设计
+- 数据库设计（见 `database.md`）
 
 上述内容将在对应文档中说明。
 

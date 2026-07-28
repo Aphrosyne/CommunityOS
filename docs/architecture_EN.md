@@ -1,7 +1,7 @@
 # CommunityOS Architecture
 
 > **Status:** Stable
-> **Version:** v1.1
+> **Version:** v1.2
 > **Last Updated:** 2026-07-27
 
 ---
@@ -44,24 +44,28 @@ Any new functionality should minimize impact on existing modules.
         │               │               │
         └───────────────┼───────────────┘
                         │
-              Command System
-                        │
         ┌───────────────┼───────────────┐
-        │                               │
-        ▼                               ▼
-  Platform Adapter                   WebUI
-        │                               │
-    NapCat / QQ                  Browser (LAN)
+        │               │               │
+        ▼               ▼               ▼
+    Database         Command          WebUI
+    (SQLite)         System        (Admin Panel)
+        │               │               │
+        └───────────────┼───────────────┘
+                        │
+                Platform Adapter
+                        │
+                    NapCat / QQ
 ```
 
-CommunityOS is divided into six main layers, plus a WebUI entry point:
+CommunityOS is divided into seven main layers:
 
 * Message Rule Service — unified group message entry, rule matching & routing
 * Services — reusable shared capabilities
 * Plugins — business feature implementation
+* Database — SQLite structured storage for members, permissions, audit logs
 * Command System — command registration, permission check, cooldown, dispatch
-* Platform Adapter — communication with chat platforms
 * WebUI — lightweight FastAPI-based admin panel, LAN access
+* Platform Adapter — communication with chat platforms
 
 ---
 
@@ -103,12 +107,38 @@ Currently implemented:
 * Throttle Service — per (user_id, reply_type) reply rate limiting
 * Cache Service — file-based cache with LRU eviction
 * Runtime Service — startup time & status
+* Database Service — SQLite unified storage via aiosqlite
 
 Services do not respond directly to QQ messages.
 
 Services exist only to provide capabilities to plugins.
 
 Multiple plugins share the same Service.
+
+---
+
+# Database
+
+CommunityOS uses SQLite for structured storage.
+
+Design principles:
+
+* **Single-file, zero-deployment** — data file at `data/communityos.db`
+* **Raw SQL** — no ORM, only `aiosqlite` dependency
+* **Does not replace logging** — text logs retained for debugging
+* **Does not replace configuration** — `.env` and `config/*.json` unchanged
+
+Core tables:
+
+| Table | Purpose |
+|-------|---------|
+| users | User identity & first seen |
+| group_memberships | Group membership & join/leave history |
+| user_permissions | Unified permissions (-1 blacklist → 9 owner) |
+| moderation_log | Moderation action audit trail |
+| command_log | Command invocation records (query layer) |
+
+Migration scripts in `bot/migrations/`. Unapplied migrations run automatically at startup.
 
 ---
 
@@ -362,6 +392,7 @@ bot/
 ├── services/           # Shared services
 ├── plugins/            # Business plugins
 ├── ui/                 # WebUI static files & API
+├── migrations/         # Database migration scripts (.sql)
 ├── config/             # Config files (.json, gitignored)
 ├── data/               # Runtime data (gitignored)
 ├── logs/               # Log files (gitignored)
@@ -407,7 +438,7 @@ This document does not cover:
 * Command system details (see `command-system.md`)
 * WebUI design & API (see `webui.md`)
 * Testing strategy & conventions (see `testing.md`)
-* Database design
+* Database design (see `database.md`)
 
 These topics are documented elsewhere.
 
