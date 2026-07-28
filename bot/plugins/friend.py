@@ -4,6 +4,7 @@
 from nonebot import on_request
 from nonebot.adapters.onebot.v11 import Bot, FriendRequestEvent
 
+from services import database
 from services.runtime_config import get as get_runtime_config
 from services.logger import get_logger
 
@@ -28,5 +29,9 @@ async def handle_friend_request(bot: Bot, event: FriendRequestEvent):
     if answer == verify_answer:
         await bot.set_friend_add_request(flag=flag, approve=True)
         logger.info(f"好友申请 同意: user={user_id}")
+        try:
+            await database.upsert_user(user_id)
+        except Exception:
+            logger.exception(f"DB 写入失败: upsert_user user={user_id}")
     else:
         logger.info(f"好友申请 忽略: user={user_id} answer={answer}")

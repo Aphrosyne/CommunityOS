@@ -4,20 +4,27 @@
 依据:
     docs/design/database.md v0.1
     docs/architecture.md §数据库
-    docs/design/database-roadmap.md Round 1
+    docs/design/database-roadmap.md Round 1 / Round 2
 
 职责:
     - 管理 aiosqlite 单例连接
     - 启动时执行 PRAGMA 配置（foreign_keys / WAL / busy_timeout）
     - 扫描并应用 bot/migrations/*.sql 迁移脚本（仅 forward）
     - 跟踪已应用迁移于数据库内 _migrations 表
+    - 提供 Repository 函数供插件调用（Round 2+: upsert_user / record_membership）
 
 不做:
-    - 不提供业务 CRUD（留给 Round 2+ 在本文件内追加 Repository 函数）
     - 不暴露给插件直接调用 connection（插件应通过本文件内的 Repository 函数）
+
+失败策略（Q6，区分启动与运行时）:
+    - 启动迁移失败 → 抛异常，禁止机器人启动
+      （半升级状态比不升级更危险，尤其权限表结构不一致）
+    - 运行时 Repository 写失败 → 抛异常给调用方，调用方（插件）应捕获并继续运行
+      （DB 是查询层，单次写失败不应中断事件处理）
 """
 from __future__ import annotations
 
+from datetime import datetime
 from pathlib import Path
 
 import aiosqlite
@@ -153,6 +160,81 @@ class DatabaseManager:
             raise RuntimeError("数据库未初始化，请先调用 setup()")
         return self._conn
 
+    # ── Repository 函数（Round 2+） ──────────────────────────
+
+    async def upsert_user(self, user_id: int) -> None:
+        """插入或更新用户记录
+
+        首次出现：插入 first_seen + last_updated
+        已存在：仅更新 last_updated，first_seen 不变
+
+        运行时失败：抛异常给调用方，调用方应捕获（见文件头 Q6 策略）。
+        """
+        assert self._conn is not None
+        now = _now_iso()
+        await self._conn.execute(
+            "INSERT INTO users (user_id, first_seen, last_updated) "
+            "VALUES (?, ?, ?) "
+            "ON CONFLICT(user_id) DO UPDATE SET last_updated = excluded.last_updated",
+            (user_id, now, now),
+        )
+        await self._conn.commit()
+
+    async def record_membership(
+        self, user_id: int, group_id: int, event: str
+    ) -> None:
+        """记录群成员关系变更
+
+        event:
+            "join"  → status=active, join_count+1, left_at=NULL
+            "leave" → status=left,    left_at=now
+            "kick"  → status=kicked,  left_at=now
+
+        自动调用 upsert_user 保证 FK 约束。
+        leave/kick 对无历史记录的用户：插入存根记录（Q3-B，join_count=0）。
+
+        运行时失败：抛异常给调用方，调用方应捕获（见文件头 Q6 策略）。
+        """
+        assert self._conn is not None
+        await self.upsert_user(user_id)  # 保证 FK
+        now = _now_iso()
+
+        if event == "join":
+            await self._conn.execute(
+                "INSERT INTO group_memberships "
+                "(user_id, group_id, status, joined_at, left_at, "
+                " join_count, last_event) "
+                "VALUES (?, ?, 'active', ?, NULL, 1, 'join') "
+                "ON CONFLICT(user_id, group_id) DO UPDATE SET "
+                "  status = 'active', "
+                "  joined_at = excluded.joined_at, "
+                "  left_at = NULL, "
+                "  join_count = join_count + 1, "
+                "  last_event = 'join'",
+                (user_id, group_id, now),
+            )
+        elif event in ("leave", "kick"):
+            status = "left" if event == "leave" else "kicked"
+            cur = await self._conn.execute(
+                "UPDATE group_memberships "
+                "SET status = ?, left_at = ?, last_event = ? "
+                "WHERE user_id = ? AND group_id = ?",
+                (status, now, event, user_id, group_id),
+            )
+            if cur.rowcount == 0:
+                # Q3-B: 无历史记录，插入存根（joined_at=NULL, join_count=0）
+                await self._conn.execute(
+                    "INSERT INTO group_memberships "
+                    "(user_id, group_id, status, joined_at, left_at, "
+                    " join_count, last_event) "
+                    "VALUES (?, ?, ?, NULL, ?, 0, ?)",
+                    (user_id, group_id, status, now, event),
+                )
+        else:
+            raise ValueError(f"未知 event: {event!r}（应为 join/leave/kick）")
+
+        await self._conn.commit()
+
 
 # 模块级单例
 _manager: DatabaseManager = DatabaseManager()
@@ -171,3 +253,23 @@ async def close() -> None:
 async def get_connection() -> aiosqlite.Connection:
     """取得模块级单例连接（Repository 函数使用）"""
     return await _manager.get_connection()
+
+
+async def upsert_user(user_id: int) -> None:
+    """插入或更新用户记录（委托给单例）"""
+    await _manager.upsert_user(user_id)
+
+
+async def record_membership(
+    user_id: int, group_id: int, event: str
+) -> None:
+    """记录群成员关系变更（委托给单例）"""
+    await _manager.record_membership(user_id, group_id, event)
+
+
+def _now_iso() -> str:
+    """当前时间的 ISO 8601 字符串（含本地时区偏移，Q1-C）
+
+    示例: 2026-07-28T15:30:00+08:00
+    """
+    return datetime.now().astimezone().isoformat()

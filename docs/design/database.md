@@ -21,6 +21,7 @@
 - **渐进接入** — 表结构一次建好，数据写入按轮次接入各插件
 - **不替代日志** — 日志文件保留作为调试备份，数据库是查询层
 - **不替代配置文件** — `.env` 和 `config/*.json` 保持现状
+- **时间戳格式** — 所有 TEXT 时间字段统一使用 Python `datetime.now().astimezone().isoformat()`，含本地时区偏移（如 `2026-07-28T15:30:00+08:00`）。注意：与 SQLite `datetime('now')`（UTC 无时区）不可直接比较，过期查询需用 Python 端构造时间字符串或在 SQL 端转换
 
 ---
 
@@ -63,6 +64,8 @@
 | last_event | TEXT | 最近事件: join / leave / kick |
 
 UNIQUE(user_id, group_id)
+
+> **存根记录语义：** 首次部署过渡期，无入群历史记录的用户直接退群/被踢时，插入 `joined_at=NULL, join_count=0, last_event=leave/kick` 的存根行，保留用户痕迹。文本日志是源数据，DB 是查询层。
 
 ### user_permissions — 权限
 
