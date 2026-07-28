@@ -2,7 +2,7 @@
 
 > **状态：** 草案
 > **版本：** v0.1
-> **最后更新：** 2026-07-27
+> **最后更新：** 2026-07-28
 
 ---
 
@@ -70,7 +70,7 @@ UNIQUE(user_id, group_id)
 |----|------|------|
 | id | INTEGER PRIMARY KEY AUTOINCREMENT | |
 | user_id | INTEGER NOT NULL | → users.user_id |
-| group_id | INTEGER | NULL = 全局生效 |
+| group_id | INTEGER NOT NULL DEFAULT 0 | 0 = 全局生效 |
 | level | INTEGER NOT NULL | -1 ~ 9 |
 | granted_by | INTEGER | 授予者 → users.user_id |
 | granted_at | TEXT | 授予时间 |
@@ -115,7 +115,7 @@ UNIQUE(user_id, group_id, level)
 ```sql
 SELECT MAX(level) FROM user_permissions
 WHERE user_id = ?
-  AND (group_id = ? OR group_id IS NULL)
+  AND group_id IN (0, ?)
   AND (expires_at IS NULL OR expires_at > datetime('now'))
 ```
 

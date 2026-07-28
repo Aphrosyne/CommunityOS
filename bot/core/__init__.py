@@ -14,13 +14,17 @@ async def on_startup():
     from services.scheduler import start_scheduler, add_interval_job
     from services.runtime import mark_start
     from services.cleanup import run_cleanup
+    from services import database
     start_scheduler()
     mark_start()
     add_interval_job(run_cleanup, seconds=600, job_id="cleanup")
+    await database.setup()
 
 
 @driver.on_shutdown
 async def on_shutdown():
     """机器人关闭时执行"""
     from services.scheduler import stop_scheduler
+    from services import database
     stop_scheduler()
+    await database.close()

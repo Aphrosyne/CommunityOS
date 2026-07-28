@@ -6,6 +6,8 @@
 import os
 from pathlib import Path
 
+from version import BOT_VERSION
+
 # Bot 根目录
 BOT_ROOT = Path(__file__).resolve().parent.parent
 
@@ -65,8 +67,7 @@ COMMAND_COOLDOWNS = {
     2: COMMAND_COOLDOWN_L2,
 }
 
-# 版本号
-BOT_VERSION = os.getenv("BOT_VERSION", "0.0.0")
+# 版本号见 version.py（已从 .env 迁出）
 
 # 图片存储目录
 IMAGE_DIR = DATA_DIR / "images"
