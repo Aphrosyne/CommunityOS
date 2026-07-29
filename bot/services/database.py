@@ -348,6 +348,38 @@ class DatabaseManager:
         )
         await self._conn.commit()
 
+    async def log_command(
+        self,
+        user_id: int,
+        group_id: int,
+        command_name: str,
+        raw_text: str | None = None,
+        result: str = "success",
+    ) -> None:
+        """写入指令调用日志
+
+        审计日志优先级高于数据完整性约束：
+            - 不做 FK 约束（未注册用户可执行指令，Q1-A）
+            - 不 upsert 用户，保证日志写入尽可能成功
+
+        group_id: 0 表示私聊（Q6-B，与 dispatcher 现有逻辑一致）
+        raw_text: Python 端截断至 200 字符（Q5-A），None → NULL
+        result: success / error（其他状态如 permission_denied/cooldown_blocked
+            本轮不记录，见 Q2-A/Q3-A/Q4-A）
+
+        运行时失败：抛异常给调用方（见文件头 Q6 策略），
+            调用方（command_dispatcher）应捕获并继续运行。
+        """
+        assert self._conn is not None
+        truncated = raw_text[:200] if raw_text is not None else None
+        await self._conn.execute(
+            "INSERT INTO command_log "
+            "(user_id, group_id, command_name, raw_text, result, timestamp) "
+            "VALUES (?, ?, ?, ?, ?, ?)",
+            (user_id, group_id, command_name, truncated, result, _now_iso()),
+        )
+        await self._conn.commit()
+
 
 # 模块级单例
 _manager: DatabaseManager = DatabaseManager()
@@ -410,6 +442,19 @@ async def log_moderation(
     """写入审核日志记录（委托给单例）"""
     await _manager.log_moderation(
         action, user_id, operator_id, group_id, reason, details
+    )
+
+
+async def log_command(
+    user_id: int,
+    group_id: int,
+    command_name: str,
+    raw_text: str | None = None,
+    result: str = "success",
+) -> None:
+    """写入指令调用日志（委托给单例）"""
+    await _manager.log_command(
+        user_id, group_id, command_name, raw_text, result
     )
 
 

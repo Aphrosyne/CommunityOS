@@ -109,11 +109,27 @@ UNIQUE(user_id, group_id, level)
 |----|------|------|
 | id | INTEGER PRIMARY KEY AUTOINCREMENT | |
 | user_id | INTEGER | 调用者 |
-| group_id | INTEGER | 调用所在群（私聊 NULL） |
-| command_name | TEXT NOT NULL | 命令名称 |
-| raw_text | TEXT | 原始消息文本（截断至 200 字符） |
-| result | TEXT | success / cooldown_blocked / permission_denied / error |
+| group_id | INTEGER | 调用所在群（私聊 0，Q6-B） |
+| command_name | TEXT NOT NULL | 命令名称（shortcut 命中时记录最终命令名，Q8-A） |
+| raw_text | TEXT | 原始消息文本（Python 端截断至 200 字符，Q5-A；None → NULL） |
+| result | TEXT | success / error（其他状态本轮不记录，见下方说明） |
 | timestamp | TEXT NOT NULL | 调用时间 |
+
+> **无外键约束（Q1-A）：** `user_id` 不添加 `REFERENCES users(user_id)`。指令日志是行为审计日志，未注册用户也可执行指令，写入不应依赖 `users` 表存在。`log_command` 不调用 `upsert_user`。
+>
+> **私聊 group_id（Q6-B）：** 私聊场景 `group_id=0`，与 `command_dispatcher.py` 现有逻辑一致，与 `user_permissions.group_id=0` 全局语义统一，避免 NULL 特殊处理。
+>
+> **raw_text 截断（Q5-A）：** 写入前由 Python 端 `raw_text[:200]` 截断至 200 字符，`None` 写入 NULL。
+>
+> **不记录的状态（Q2-A / Q3-A / Q4-A）：** `command_log` 只记录实际执行的指令（result=success/error）。以下情况不写入：
+> - 黑名单拦截（Q2-A，静默忽略）
+> - 冷却期拦截（Q3-A，高频正常事件）
+> - 权限拒绝（Q4-A，与 `moderation_log` 设计一致）
+> - 未注册命令、参数校验失败、group_only 场景不符（均静默 return）
+>
+> **shortcut 命中（Q8-A）：** 快捷映射触发后按最终命令名记录，不增加 shortcut 标记字段。
+>
+> **写入失败处理：** `command_dispatcher` 调用 `log_command` 失败时仅记日志不抛出，不影响指令执行结果。
 
 当前 `command.log` 文本日志保留，此表作为查询层逐步启用。
 

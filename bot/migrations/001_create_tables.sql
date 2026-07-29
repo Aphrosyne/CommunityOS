@@ -57,6 +57,9 @@ CREATE TABLE IF NOT EXISTS moderation_log (
 );
 
 -- command_log — 指令记录（查询层，文本日志保留）
+-- Q1-A: 不添加 FK 约束。审计日志优先级高于数据完整性约束：
+--   - 未注册用户可以执行指令
+--   - 日志写入不应依赖 users 表存在
 CREATE TABLE IF NOT EXISTS command_log (
     id           INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id      INTEGER,
@@ -64,8 +67,7 @@ CREATE TABLE IF NOT EXISTS command_log (
     command_name TEXT NOT NULL,
     raw_text     TEXT,
     result       TEXT,
-    timestamp    TEXT NOT NULL,
-    FOREIGN KEY (user_id) REFERENCES users (user_id)
+    timestamp    TEXT NOT NULL
 );
 
 -- 索引（按实际查询场景建立）
