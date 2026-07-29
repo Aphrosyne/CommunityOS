@@ -12,6 +12,7 @@ import time
 
 from nonebot import on_message
 from nonebot.adapters.onebot.v11 import Bot, MessageEvent, MessageSegment
+from nonebot.exception import MatcherException
 from nonebot.typing import T_State
 
 from services.command import get as get_command, matches_args
@@ -19,10 +20,31 @@ from services.config import COMMAND_COOLDOWNS
 from services.permission import check as check_permission, is_owner, is_blacklisted
 from services.shortcut import match as shortcut_match
 from services.message_rule import check_command
+from services import database
 from services.logger import get_logger
 
 logger = get_logger("command")
 _mod_log = get_logger("moderation")
+
+
+async def _log_cmd(
+    user_id: int,
+    group_id: int,
+    command_name: str,
+    raw_text: str | None,
+    result: str,
+) -> None:
+    """写入指令日志到 DB，失败仅记日志不抛出（Q1-A 额外要求）"""
+    try:
+        await database.log_command(
+            user_id=user_id,
+            group_id=group_id,
+            command_name=command_name,
+            raw_text=raw_text,
+            result=result,
+        )
+    except Exception:
+        logger.exception(f"DB 写入失败: command_log cmd={command_name} result={result}")
 
 # 冷却: {(user_id, group_id): {cooldown_level: last_time}}  # group_id=0 表示私聊
 _cooldowns: dict[tuple[int, int], dict[int, float]] = {}
@@ -122,6 +144,13 @@ async def dispatch(bot: Bot, event: MessageEvent, state: T_State):
     logger.info(f"用户 {user_id} 执行命令: {cmd_name}")
     try:
         await cmd["handler"](bot, event)
+    except MatcherException:
+        # NoneBot 控制流异常（finish/pause/reject 等）属于正常执行完成
+        await _log_cmd(user_id, group_id, cmd_name, msg, "success")
+        raise
     except Exception as e:
         logger.error(f"命令 {cmd_name} 执行异常: {e}")
+        await _log_cmd(user_id, group_id, cmd_name, msg, "error")
         await dispatcher.finish("命令执行出错，请稍后重试。")
+    else:
+        await _log_cmd(user_id, group_id, cmd_name, msg, "success")

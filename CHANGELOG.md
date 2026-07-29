@@ -11,11 +11,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/lang/zh-CN/
 
 ### Added
 
+- Database Round 5 指令日志结构化记录：新增 `DatabaseManager.log_command()` Repository 函数（含模块级委托），`command_dispatcher.py` 在指令执行成功（result=success）和异常（result=error）时写入 `command_log` 表。
+- `command_log` 写入支持 `raw_text` Python 端截断至 200 字符（Q5-A），`raw_text=None` 写入 NULL；私聊 `group_id=0`（Q6-B）；shortcut 命中按最终命令名记录（Q8-A）；运行时 DB 写入失败仅记日志不抛出，不影响指令执行。
+- 新增 `tests/unit/test_command_log.py`（12 个用例）：覆盖正常写入、error 结果、未注册用户写入、私聊 group_id=0、raw_text 截断（200/恰好 200/None）、默认 result、多记录排序、按命令名/结果/群查询。
+
+### Changed
+
+- `bot/migrations/001_create_tables.sql`：移除 `command_log` 表 `user_id` 的外键约束（Q1-A）。指令日志是行为审计日志，未注册用户也可执行指令，写入不应依赖 `users` 表存在。
+- `bot/plugins/command_dispatcher.py`：接入 `log_command`，用 try/except 捕获 handler 异常；`MatcherException`（NoneBot 控制流如 finish/pause/reject）视为正常完成记录 success 并 re-raise，其他异常记录 error。黑名单拦截、冷却期拦截、权限拒绝、未注册命令等不写入 `command_log`（Q2-A/Q3-A/Q4-A）。
+- `docs/design/database.md`：§3.2 `command_log` 更新字段说明（私聊 group_id=0、raw_text 截断 200、无 FK 约束、不记录的状态、shortcut 处理、写入失败处理）。
+
+---
+
+### Added (Round 4)
+
 - Database Round 4 审核日志结构化记录：新增 `DatabaseManager.log_moderation()` Repository 函数（含模块级委托），`mute.py`（禁言/解禁/自禁/拒绝禁言）、`auto_recall.py`（违禁词自动撤回成功与失败）、`admin.py`（权限设置成功与拒绝）接入写入 `moderation_log` 表。
 - `moderation_log` 写入支持 `details` 字段 JSON 序列化（`json.dumps(ensure_ascii=False, default=str)`），`details=None` 写入 NULL；运行时 DB 写入失败仅记日志不抛出，不影响业务流程。
 - 新增 `tests/unit/test_moderation_log.py`（11 个用例）：覆盖正常写入、系统操作（operator_id=0）、全局权限记录、details=NULL、JSON 序列化往返、不存在 user_id/operator_id 仍能写入、多记录排序、全 action 值域、按用户/群/action 查询。
 
-### Changed
+### Changed (Round 4)
 
 - `bot/migrations/001_create_tables.sql`：移除 `moderation_log` 表 `user_id`、`operator_id` 的外键约束（Q1-A）。审计日志优先级高于数据完整性约束，保证被操作用户不存在或系统操作（operator_id=0）时仍能写入。
 - `docs/design/database.md`：§3.2 `moderation_log` 更新 action 值域（mute/unmute/mute_denied/auto_recall/permission_set/permission_denied），补充无 FK 约束、JSON details、不记录常规权限拒绝的设计说明；§5 修正迁移文件名；§6 接入计划对齐 database-roadmap.md（Round 3=权限系统，Round 4=审核日志）。
