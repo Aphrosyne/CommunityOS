@@ -7,7 +7,7 @@ from nonebot.adapters.onebot.v11 import (
 )
 
 from services import database
-from services.config import MANAGED_GROUPS
+from services import runtime_config
 from services.logger import get_logger
 
 logger = get_logger("member")
@@ -18,7 +18,7 @@ member_notice = on_notice(priority=5)
 @member_notice.handle()
 async def handle_member(bot: Bot, event):
     if isinstance(event, GroupIncreaseNoticeEvent):
-        if event.group_id not in MANAGED_GROUPS:
+        if event.group_id not in runtime_config.get("MANAGED_GROUPS", []):
             return
         # Q2-A: 跳过 bot 自身入群
         if event.user_id == event.self_id:
@@ -38,7 +38,7 @@ async def handle_member(bot: Bot, event):
             )
 
     elif isinstance(event, GroupDecreaseNoticeEvent):
-        if event.group_id not in MANAGED_GROUPS:
+        if event.group_id not in runtime_config.get("MANAGED_GROUPS", []):
             return
         # Q2-A: 跳过 bot 自身退群
         if event.user_id == event.self_id:

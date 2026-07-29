@@ -40,8 +40,7 @@ BOT_QQ = int(os.getenv("BOT_QQ", "0"))
 
 # 被 @ 时的回复内容（已迁移至 runtime.json，见 services/runtime_config.py）
 
-# 图片投稿
-MANAGED_GROUPS: list[int] = [int(x.strip()) for x in os.getenv("MANAGED_GROUPS", "").split(",") if x.strip()]
+# 图片投稿（MANAGED_GROUPS 已迁移至 runtime.json，支持热更新）
 IMAGE_MAX_FILE_SIZE = int(os.getenv("IMAGE_MAX_FILE_SIZE", "20"))
 IMAGE_CACHE_MAX_MB = int(os.getenv("IMAGE_CACHE_MAX_MB", "500"))
 IMAGE_MAX_PIXELS = int(os.getenv("IMAGE_MAX_PIXELS", "20000000"))

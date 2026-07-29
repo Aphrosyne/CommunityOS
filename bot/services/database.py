@@ -303,6 +303,49 @@ class DatabaseManager:
             row = await cur.fetchone()
         return row[0] if row[0] is not None else 0
 
+    async def get_user_permissions(self, user_id: int) -> list[dict]:
+        """查询用户所有权限记录（全局 + 各群）
+
+        返回未过期的记录列表，按 group_id 升序。
+        每条记录包含 group_id/level/granted_by/granted_at/expires_at/reason。
+        用于 /perm @user 指令展示用户权限全貌。
+        """
+        assert self._conn is not None
+        now = _now_iso()
+        async with self._conn.execute(
+            "SELECT group_id, level, granted_by, granted_at, expires_at, reason "
+            "FROM user_permissions "
+            "WHERE user_id = ? AND (expires_at IS NULL OR expires_at > ?) "
+            "ORDER BY group_id",
+            (user_id, now),
+        ) as cur:
+            rows = await cur.fetchall()
+        return [
+            {
+                "group_id": r[0],
+                "level": r[1],
+                "granted_by": r[2],
+                "granted_at": r[3],
+                "expires_at": r[4],
+                "reason": r[5],
+            }
+            for r in rows
+        ]
+
+    async def clear_user_permissions(self, user_id: int) -> int:
+        """清除用户所有权限记录（全局 + 各群）
+
+        返回删除的记录数。
+        注意：调用方应先做 Owner 保护检查，不可清除 Owner 的权限。
+        """
+        assert self._conn is not None
+        cur = await self._conn.execute(
+            "DELETE FROM user_permissions WHERE user_id = ?",
+            (user_id,),
+        )
+        await self._conn.commit()
+        return cur.rowcount
+
     async def log_moderation(
         self,
         action: str,
@@ -429,6 +472,16 @@ async def set_permission(
 async def get_permission(user_id: int, group_id: int) -> int:
     """获取用户在某群的有效权限等级（委托给单例）"""
     return await _manager.get_permission(user_id, group_id)
+
+
+async def get_user_permissions(user_id: int) -> list[dict]:
+    """查询用户所有权限记录（委托给单例）"""
+    return await _manager.get_user_permissions(user_id)
+
+
+async def clear_user_permissions(user_id: int) -> int:
+    """清除用户所有权限记录（委托给单例）"""
+    return await _manager.clear_user_permissions(user_id)
 
 
 async def log_moderation(
