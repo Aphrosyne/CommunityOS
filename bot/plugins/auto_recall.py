@@ -5,10 +5,10 @@ from nonebot import on_message
 from nonebot.adapters.onebot.v11 import Bot, MessageEvent
 
 from services.command import register, CooldownTier
-from services.config import MANAGED_GROUPS
 from services.message_rule import check_keywords, list_keywords
 from services.permission import Level, is_owner
 from services import database
+from services import runtime_config
 from services.logger import get_logger
 
 m_log = get_logger("moderation")
@@ -68,7 +68,7 @@ async def handle_auto_mod(bot: Bot, event: MessageEvent):
         return
 
     group_id = getattr(event, "group_id", 0)
-    if group_id not in MANAGED_GROUPS:
+    if group_id not in runtime_config.get("MANAGED_GROUPS", []):
         return
 
     if await is_owner(event.user_id):
@@ -83,6 +83,16 @@ async def handle_auto_mod(bot: Bot, event: MessageEvent):
 
     text = event.get_plaintext()
     hits = check_keywords(group_id, text)
+
+    # 合并转发检测：QQ 客户端显示"[聊天记录]"/"[转发消息]"，
+    # 但消息数据是 forward 消息段，get_plaintext() 返回空。
+    # 检查消息段类型，若该群关键词列表含转发特征词则视为命中。
+    if not hits:
+        forward_kws = [kw for kw in list_keywords(group_id)
+                       if kw == "[合并转发消息]"]
+        if forward_kws and any(seg.type == "forward" for seg in event.message):
+            hits = forward_kws
+
     if not hits:
         return
 

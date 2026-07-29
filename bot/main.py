@@ -29,23 +29,13 @@ driver.register_adapter(OneBotV11Adapter)
 # --- 导入 core 模块，注册启动/关闭钩子 ---
 import core  # noqa: E402
 
-# --- 加载插件 ---
-# nonebot.load_plugin("plugins.greet")
-nonebot.load_plugin("plugins.command_dispatcher")
-nonebot.load_plugin("plugins.help")
-nonebot.load_plugin("plugins.status")
-nonebot.load_plugin("plugins.publish")
-nonebot.load_plugin("plugins.obfuscate")
-nonebot.load_plugin("plugins.decode")
-nonebot.load_plugin("plugins.friend")
-nonebot.load_plugin("plugins.member")
-nonebot.load_plugin("plugins.mute")
-nonebot.load_plugin("plugins.shortcuts")
-nonebot.load_plugin("plugins.auto_recall")
-nonebot.load_plugin("plugins.auto_complete")
-nonebot.load_plugin("plugins.reload")
-nonebot.load_plugin("plugins.admin")
-# TODO: 后续改为 load_plugins("plugins") 自动扫描所有插件
+# --- 加载插件（自动扫描 plugins/ 目录）---
+# 用 load_plugin("plugins.{stem}") 保持模块名解析与原手动方式一致，
+# 避免 load_plugins(path) 将模块名解析为 "bot.plugins.xxx" 导致 ImportError。
+_plugins_dir = PROJECT_ROOT / "plugins"
+for _pf in sorted(_plugins_dir.glob("*.py")):
+    if not _pf.name.startswith("_"):
+        nonebot.load_plugin(f"plugins.{_pf.stem}")
 
 # --- 启动时打印已加载插件 ---
 @driver.on_startup

@@ -5,7 +5,7 @@ Message Rule Service — 群消息规则匹配与路由
 不执行指令、不撤回消息，只做匹配与路由。
 """
 from services.command import get as get_command, matches_args
-from services.config import MANAGED_GROUPS
+from services import runtime_config
 from services.permission import Level
 from services.shortcut import match as shortcut_match
 from services.logger import get_logger
@@ -22,7 +22,7 @@ def check_command(msg_type: str, group_id: int, to_me: bool, text: str) -> bool:
     if to_me:
         return True
 
-    if group_id not in MANAGED_GROUPS:
+    if group_id not in runtime_config.get("MANAGED_GROUPS", []):
         return False
 
     # 先查 shortcut 映射，取映射后命令的首词
