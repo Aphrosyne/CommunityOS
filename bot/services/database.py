@@ -30,13 +30,19 @@ from pathlib import Path
 
 import aiosqlite
 
-from services.config import DATA_DIR
+from services.config import DATA_DIR, OWNER
 from services.logger import get_logger
 
 logger = get_logger("database")
 
 # 数据库文件路径
 DB_PATH: Path = DATA_DIR / "communityos.db"
+
+# 权限等级值域（与 services/permission.py 的 Level 类对应）
+# M2: set_permission 接受的 level 值域校验，防止 WebUI/未来插件传非法值。
+# 不直接 import services.permission.Level 以避免循环依赖。
+LEVEL_MIN = -1  # Blacklist
+LEVEL_MAX = 9   # Owner
 
 # 迁移脚本目录（bot/migrations/）
 MIGRATIONS_DIR: Path = Path(__file__).resolve().parent.parent / "migrations"
@@ -88,10 +94,12 @@ class DatabaseManager:
         assert self._conn is not None
 
         # 迁移跟踪表
+        # M9: applied_at 不再使用 datetime('now')（UTC 无时区），
+        # 改为在 INSERT 时显式传 _now_iso()，与其它表时间戳格式统一。
         await self._conn.execute(
             "CREATE TABLE IF NOT EXISTS _migrations ("
             "  name TEXT PRIMARY KEY,"
-            "  applied_at TEXT NOT NULL DEFAULT (datetime('now'))"
+            "  applied_at TEXT NOT NULL"
             ")"
         )
         await self._conn.commit()
@@ -127,6 +135,8 @@ class DatabaseManager:
 
         CREATE TABLE/INDEX IF NOT EXISTS 保证脚本幂等，
         即使 _migrations 记录丢失，重跑也安全。
+
+        M9: applied_at 用 Python 端 _now_iso() 注入，统一 ISO 8601 含时区格式。
         """
         assert self._conn is not None
         sql = path.read_text(encoding="utf-8")
@@ -134,7 +144,8 @@ class DatabaseManager:
         try:
             await self._conn.executescript(sql)
             await self._conn.execute(
-                "INSERT INTO _migrations (name) VALUES (?)", (path.name,)
+                "INSERT INTO _migrations (name, applied_at) VALUES (?, ?)",
+                (path.name, _now_iso()),
             )
             await self._conn.commit()
         except Exception:
@@ -253,9 +264,30 @@ class DatabaseManager:
         group_id=0 表示全局生效（Q11-C）。
         level 值域: -1(黑名单) ~ 9(Owner)，见 database.md §3.1。
 
+        安全兜底（H1 defense-in-depth, M2, M3）:
+            - level 超出 [LEVEL_MIN, LEVEL_MAX] 抛 ValueError（M2）
+            - user_id == OWNER 且 level != Owner 抛 PermissionError（H1）:
+              防止 Owner 被 DB 直写降级，与 admin 命令层保护形成双层防御。
+              该检查不阻止 Owner 自我维护（level == Owner 仍允许）。
+
         运行时失败：抛异常给调用方（见文件头 Q6 策略）。
         """
         assert self._conn is not None
+
+        # M2: level 值域校验
+        if not (LEVEL_MIN <= level <= LEVEL_MAX):
+            raise ValueError(
+                f"level 值域非法: {level}（应在 [{LEVEL_MIN}, {LEVEL_MAX}]）"
+            )
+
+        # H1: Owner 保护——拒绝在 DB 层直接降级 OWNER
+        # （允许 level == Owner 的种子写入与刷新；其它 level 一律拒绝）
+        if OWNER and user_id == OWNER and level != LEVEL_MAX:
+            raise PermissionError(
+                f"拒绝修改 OWNER({OWNER}) 权限到 level={level}: "
+                "Owner 保护由 .env 与 DB 双层强制"
+            )
+
         await self.upsert_user(user_id)  # 保证 FK (user_id)
         if granted_by is not None:
             await self.upsert_user(granted_by)  # 保证 FK (granted_by)
@@ -336,9 +368,21 @@ class DatabaseManager:
         """清除用户所有权限记录（全局 + 各群）
 
         返回删除的记录数。
-        注意：调用方应先做 Owner 保护检查，不可清除 Owner 的权限。
+
+        安全兜底（M3 defense-in-depth）:
+            user_id == OWNER 时抛 PermissionError。
+            命令层 admin.py 已有 Owner 保护检查，这里是数据库层兜底，
+            防止 WebUI 或未来调用方忘记做 Owner 检查。
         """
         assert self._conn is not None
+
+        # M3: Owner 保护下沉数据库层
+        if OWNER and user_id == OWNER:
+            raise PermissionError(
+                f"拒绝清除 OWNER({OWNER}) 权限: "
+                "Owner 保护由 .env 与 DB 双层强制"
+            )
+
         cur = await self._conn.execute(
             "DELETE FROM user_permissions WHERE user_id = ?",
             (user_id,),

@@ -1,8 +1,15 @@
 # Permission Service 权限服务
 
 > **状态：** 正式
-> **版本：** v1.0
-> **最后更新：** 2026-07-02
+> **版本：** v1.1
+> **最后更新：** 2026-07-29
+
+---
+
+## 变更记录
+
+- **v1.1 (2026-07-29):** 升级到 9 级权限模型，反映 Database Round 1-5 实现；新增 defense-in-depth 安全保证（H1/H2/M2/M3）；更新白名单能力状态。
+- **v1.0 (2026-07-02):** 初始版本，三级权限模型（User/Admin/Owner）。
 
 ---
 
@@ -73,47 +80,66 @@
 
 ## 3. 权限等级
 
-当前版本定义三种基础权限等级。
+当前版本（v1.1）采用 9 级权限模型，与 [database.md §3.1](database.md) 一致。
 
-| 等级 | 名称  | 说明                                       |
-| ---- | ----- | ------------------------------------------ |
-| 0    | User  | 普通用户，可使用公开功能。                 |
-| 1    | Admin | Bot 管理员，可执行机器人控制与跨群管理操作。 |
-| 2    | Owner | 机器人所有者，可执行系统级操作。           |
+| 等级 | 名称       | 说明                                       |
+| ---- | ---------- | ------------------------------------------ |
+| -1   | Blacklist  | 黑名单，禁止使用任何功能。                 |
+| 0    | User       | 普通用户，可使用公开功能。默认等级。       |
+| 1    | Whitelist  | 白名单，豁免批量清人（防撤回/冷却豁免暂未实现，见 §12）。 |
+| 2    | GroupAdmin | 群管理员，仅对应群内有效（群级权限）。     |
+| 3    | BotAdmin   | 跨群机器人管理。                           |
+| 9    | Owner      | 机器人所有者，最高权限。                   |
 
-权限等级具有继承关系。
+权限等级具有继承关系，高等级权限自动包含低等级权限：
 
 ```text
-Owner
+Owner (9)
   ↓
-Admin
+BotAdmin (3)
   ↓
-User
+GroupAdmin (2) [仅群内]
+  ↓
+Whitelist (1)
+  ↓
+User (0)
+
+Blacklist (-1) 独立存在，禁止任何功能。
 ```
 
-高等级权限自动包含低等级权限。
+例如，Owner 可以执行 BotAdmin、GroupAdmin、Whitelist 和 User 权限的操作。
 
-例如，Owner 可以执行 Admin 和 User 权限的操作。
+### 等级间操作权限（Q13-A / H2）
+
+为防止横向越权（peer privilege escalation），权限修改操作遵循以下规则：
+
+- **Owner 保护**：target 为 Owner（level=9）时，任何人都不可降级或拉黑。
+  保护由 `.env OWNER` 配置与 DB 层双层强制（defense-in-depth，见 §6）。
+- **同级保护**（H2）：非 Owner 操作者不可影响权限等级 ≥ 自身的用户。
+  即 BotAdmin 之间互相禁止降权/拉黑；同级互操作的紧急场景必须由 Owner 完成。
+
+详见 [bot/plugins/admin.py](../../bot/plugins/admin.py) 的 `_apply` 函数。
 
 ---
 
 ## 4. 权限来源
 
-当前版本的权限来源为配置文件。
+当前版本（v1.1）的权限来源为：
 
-包括：
+* `.env OWNER`：Owner 用户标识，启动时种子写入 `user_permissions` 表。
+* `.env ADMINS`：BotAdmin 用户标识列表，启动时种子写入（覆盖语义）。
+* 管理指令 `/botadmin` `/groupadmin` `/whitelist` `/blacklist` `/perm` 动态修改。
 
-* Owner 用户标识；
-* Admin 用户标识列表。
+权限数据由 SQLite 数据库存储（见 [database.md](database.md)），由 `services/permission.py` 作为统一入口，插件不应绕过该入口直接读写 `user_permissions` 表。
 
-权限配置属于机器人运行配置，不应写死在插件代码中。
+### 种子写入行为（M4 待定）
 
-未来可以扩展为：
+`seed_from_env()` 在每次启动时用 `set_permission` 覆盖写入 Owner 与 BotAdmin 记录。当前行为：
 
-* 数据库存储；
-* 群成员角色；
-* 外部身份系统；
-* 管理指令动态修改。
+- 运行时降级 BotAdmin 的操作会在下次重启后被回滚为 `.env ADMINS` 中声明的等级。
+- Owner 记录每次刷新为 level=9（受 H1 保护，允许维持等级，禁止降级）。
+
+该行为是否在后续版本改为"仅在不存在时插入"（INSERT OR IGNORE 语义）待定，见 [technical-debt.md M4](../technical-debt.md)。
 
 ---
 
@@ -171,9 +197,24 @@ Owner 的冷却豁免仅适用于功能使用频率限制，不应绕过以下�
 * 任务处理中限制；
 * 系统安全限制。
 
-Admin 与 User 均遵循正常冷却规则。
+BotAdmin 与 User 均遵循正常冷却规则。
 
 冷却豁免应由公共冷却机制结合 Permission Service 统一处理，Plugin 不应自行判断 Owner 身份。
+
+### Owner 保护 defense-in-depth（H1 / M3）
+
+Owner 是系统最高权限主体，不可被降级或拉黑。保护机制分两层：
+
+1. **命令层**（[bot/plugins/admin.py](../../bot/plugins/admin.py) `_apply`）：检查 target_level >= Owner 时拒绝，写 `permission_denied` 审计日志。
+2. **数据库层**（[bot/services/database.py](../../bot/services/database.py)）：
+   - `set_permission(user_id == OWNER, level != 9)` 抛 `PermissionError`（H1）。
+   - `clear_user_permissions(user_id == OWNER)` 抛 `PermissionError`（M3）。
+
+`.env OWNER` 是 Owner 身份的权威源，DB 状态损坏（误删、迁移失败）时命令层保护仍可能失效，但 DB 层兜底保证无法通过直写 API 破坏 Owner。这是 defense-in-depth 设计。
+
+### level 值域校验（M2）
+
+`database.set_permission` 在写入前校验 `level ∈ [-1, 9]`，超出范围抛 `ValueError`。防止 WebUI 或未来插件传非法 level 值破坏权限模型。常量 `LEVEL_MIN = -1`、`LEVEL_MAX = 9` 定义在 `services/database.py`，与 `Level` 类对应。
 
 
 ---
@@ -264,22 +305,24 @@ action=permission_denied operator=<user_id> group=<group_id> target=0 result=den
 
 ## 11. 当前版本范围
 
-权限服务 v1.0 包含：
+权限服务 v1.1 包含：
 
-* User、Admin、Owner 三个权限等级；
-* 基于配置文件的 Owner 与 Admin 身份识别；
-* 统一权限检查接口；
-* 指令分发器权限接入；
-* 权限拒绝提示与日志记录。
+* 9 级权限模型（Blacklist/User/Whitelist/GroupAdmin/BotAdmin/Owner）；
+* 基于 `.env` 与数据库存储的双重权限来源（Owner/BotAdmin 种子 + 动态修改）；
+* 统一权限检查接口（`get_level` / `check` / `is_owner` / `is_blacklisted`）；
+* 指令分发器权限接入（命令声明 `permission` + dispatcher 统一检查）；
+* 权限拒绝提示与 `moderation.log` 审计日志记录；
+* 管理指令 `/botadmin` `/groupadmin` `/whitelist` `/blacklist` `/perm`（英文别名 sba/sga/swl/sbl/spm）；
+* Owner 保护 defense-in-depth（命令层 + 数据库层双层，H1/M3）；
+* BotAdmin 同级保护（H2）；
+* `set_permission` level 值域校验（M2）。
 
 当前版本不包含：
 
-* 黑名单；
-* 白名单；
-* 群级角色；
-* 动态权限修改；
-* 数据库存储；
+* 白名单的"防撤回"与"冷却豁免"能力（见 §12）；
+* 全局黑名单覆盖群级权限（黑名单语义限制，见 [technical-debt.md M1](../technical-debt.md)）；
 * Web 管理面板；
+* 临时权限过期触发清理；
 * 多机器人实例权限同步。
 
 ---
@@ -288,13 +331,12 @@ action=permission_denied operator=<user_id> group=<group_id> target=0 result=den
 
 后续版本可逐步增加：
 
-* 黑名单与白名单；
-* 群管理员权限映射；
-* 群级角色与权限策略；
-* 管理员命令；
-* 权限变更审计日志；
+* 白名单的防撤回与冷却豁免能力（与 database.md §3.1 设计一致）；
+* 全局黑名单覆盖群级权限（解决 M1）；
+* 权限变更审计日志的查询接口（Round 6 WebUI 接入）；
 * 临时权限；
-* 基于数据库的权限存储。
+* Web 管理面板；
+* 多机器人实例权限同步。
 
 这些能力应建立在当前统一权限模型之上，而不改变插件使用方式。
 

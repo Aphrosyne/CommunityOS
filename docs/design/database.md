@@ -1,8 +1,15 @@
 # Database 数据库设计
 
 > **状态：** 草案
-> **版本：** v0.1
-> **最后更新：** 2026-07-28
+> **版本：** v0.2
+> **最后更新：** 2026-07-29
+
+---
+
+## 变更记录
+
+- **v0.2 (2026-07-29):** Round 1 Permission Security Hardening：H1（Owner 保护 defense-in-depth 下沉 DB 层）、H2（BotAdmin 同级保护）、M2（level 值域校验）、M3（clear_user_permissions Owner 保护）、M9（_migrations.applied_at 时间戳统一）；明确白名单能力实现状态（H4）。
+- **v0.1 (2026-07-28):** 初始版本，Round 1-5 设计完成。
 
 ---
 
@@ -22,6 +29,7 @@
 - **不替代日志** — 日志文件保留作为调试备份，数据库是查询层
 - **不替代配置文件** — `.env` 和 `config/*.json` 保持现状
 - **时间戳格式** — 所有 TEXT 时间字段统一使用 Python `datetime.now().astimezone().isoformat()`，含本地时区偏移（如 `2026-07-28T15:30:00+08:00`）。注意：与 SQLite `datetime('now')`（UTC 无时区）不可直接比较，过期查询需用 Python 端构造时间字符串或在 SQL 端转换
+- **时间戳统一（M9）** — `_migrations.applied_at` 亦改用 Python 端 `_now_iso()` 注入，不再使用 SQLite `datetime('now')` 默认值，保证全库时间戳格式一致
 
 ---
 
@@ -32,13 +40,32 @@
 ```text
 -1  黑名单  Blacklist      禁止使用任何功能
  0  普通    User           默认等级
- 1  白名单  Whitelist      豁免批量清人 / 防撤回 / 冷却豁免
+ 1  白名单  Whitelist      豁免批量清人（防撤回/冷却豁免暂未实现，见注）
  2  群管理  GroupAdmin     仅对应群内有效
  3  管理员  BotAdmin       跨群机器人管理
  9  拥有者  Owner          最高权限
 ```
 
 4-8 预留未来扩展。
+
+> **白名单能力实现状态（H4）：** database.md 原设计白名单 = "豁免批量清人 / 防撤回 / 冷却豁免"。
+> 当前实现中"防撤回"与"冷却豁免"暂未实现（auto_recall 与 dispatcher 仅对 Owner 豁免），
+> "豁免批量清人"将在 Round 6 引入。
+> 详见 [technical-debt.md H4](../technical-debt.md)。
+
+### 权限模型安全保证
+
+数据库层强制以下安全约束（defense-in-depth，与命令层保护互补）：
+
+| 约束 | 位置 | 说明 |
+|------|------|------|
+| level 值域校验（M2） | `database.set_permission` | level 不在 `[-1, 9]` 抛 `ValueError` |
+| Owner 写保护（H1） | `database.set_permission` | `user_id == OWNER` 且 `level != 9` 抛 `PermissionError` |
+| Owner 清除保护（M3） | `database.clear_user_permissions` | `user_id == OWNER` 抛 `PermissionError` |
+
+常量 `LEVEL_MIN = -1`、`LEVEL_MAX = 9` 定义在 [bot/services/database.py](../../bot/services/database.py)，避免与 `services/permission.py` 循环依赖。
+
+> **黑名单语义限制（M1）：** 全局黑名单（group_id=0, level=-1）不覆盖群级权限。若用户同时有全局黑名单与某群级权限，MAX 聚合后该群返回群级权限值，黑名单在该群失效。紧急拉黑多群管理员需在每个群单独移除群级权限。详见 [technical-debt.md M1](../technical-debt.md)。
 
 ## 3.2 表结构
 

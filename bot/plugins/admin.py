@@ -70,14 +70,19 @@ async def _apply(
     """统一的权限设置执行器
 
     Q13-A: Owner(level=9) 受保护，不可被降级或拉黑。
+    H2: 同级保护——非 Owner 操作者不可影响 level >= 自身的用户
+        （防止 BotAdmin 互相降级/拉黑的横向越权）。
     group_id: 权限作用范围。0=全局（默认），>0=群级。
         - /botadmin /whitelist /blacklist 传 group_id=0（全局）
         - /groupadmin 传当前群 group_id（群级）
     """
     operator_id = event.user_id
 
+    # 查操作者与目标的有效权限（target 查 MAX 覆盖全局+群级，L9 defense-in-depth）
+    operator_level = await get_level(operator_id, group_id)
+    target_level = await get_level(target_id, group_id)
+
     # Owner 保护（查全局 level，Owner 在任何群都受保护）
-    target_level = await get_level(target_id, 0)
     if target_level >= Level.Owner:
         await bot.send(event, f"无法操作：{target_id} 是 Owner，受保护。")
         m_log.info(
@@ -89,6 +94,31 @@ async def _apply(
             "permission_denied", target_id, operator_id, group_id,
             reason="target_is_owner",
             details={"result": "denied"},
+        )
+        return
+
+    # H2: 同级保护——非 Owner 操作者不可操作 level >= 自身的目标
+    # （Owner 可操作任何非 Owner 用户；BotAdmin 之间互相禁止）
+    if operator_level < Level.Owner and target_level >= operator_level:
+        await bot.send(
+            event,
+            f"无法操作：{target_id} 的权限等级（{target_level}）"
+            f"不低于你（{operator_level}），无权操作。",
+        )
+        m_log.info(
+            f"action=permission_denied operator={operator_id} "
+            f"target={target_id} group={group_id} result=denied "
+            f"reason=target_level_gte_operator "
+            f"operator_level={operator_level} target_level={target_level}"
+        )
+        await _log_mod(
+            "permission_denied", target_id, operator_id, group_id,
+            reason="target_level_gte_operator",
+            details={
+                "result": "denied",
+                "operator_level": operator_level,
+                "target_level": target_level,
+            },
         )
         return
 
@@ -229,7 +259,8 @@ async def handle_perm(bot: Bot, event: MessageEvent):
 
     # 子命令: clear
     if len(msg) >= 2 and msg[1] == "clear":
-        # Owner 保护
+        # Owner 保护 + 同级保护（H2 一致性）
+        operator_level = await get_level(operator_id, 0)
         target_level = await get_level(target_id, 0)
         if target_level >= Level.Owner:
             await bot.send(event, f"无法操作：{target_id} 是 Owner，受保护。")
@@ -242,6 +273,30 @@ async def handle_perm(bot: Bot, event: MessageEvent):
                 "permission_denied", target_id, operator_id, 0,
                 reason="target_is_owner",
                 details={"result": "denied", "subaction": "perm_clear"},
+            )
+            return
+        if operator_level < Level.Owner and target_level >= operator_level:
+            await bot.send(
+                event,
+                f"无法操作：{target_id} 的权限等级（{target_level}）"
+                f"不低于你（{operator_level}），无权清除。",
+            )
+            m_log.info(
+                f"action=permission_denied operator={operator_id} "
+                f"target={target_id} result=denied "
+                f"reason=target_level_gte_operator "
+                f"action_subtype=perm_clear "
+                f"operator_level={operator_level} target_level={target_level}"
+            )
+            await _log_mod(
+                "permission_denied", target_id, operator_id, 0,
+                reason="target_level_gte_operator",
+                details={
+                    "result": "denied",
+                    "subaction": "perm_clear",
+                    "operator_level": operator_level,
+                    "target_level": target_level,
+                },
             )
             return
 

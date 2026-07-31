@@ -570,7 +570,18 @@ Round 6 WebUI 开发启动。
 
 已处理完成的技术债，保留历史可追溯。
 
-（暂无）
+## Round 1: Permission Security Hardening（2026-07-29）
+
+| 编号 | 标题 | 解决方式 | 提交 |
+|------|------|----------|------|
+| H1 | Owner 保护依赖数据库状态 | DB 层 `set_permission` 加 `user_id == OWNER 且 level != 9` 抛 `PermissionError`；命令层保留显式检查 | fix/permission-security-hardening |
+| H2 | BotAdmin 同级权限保护 | `admin.py _apply` 加 `target_level >= operator_level`（operator 非 Owner）拒绝逻辑；`handle_perm` clear 子命令同步 | fix/permission-security-hardening |
+| M2 | set_permission 缺少 level 范围校验 | `set_permission` 开头校验 `level ∈ [-1, 9]`，超出抛 `ValueError`；常量 `LEVEL_MIN/LEVEL_MAX` 定义在 database.py | fix/permission-security-hardening |
+| M3 | clear_user_permissions Owner 防护下沉数据库层 | `clear_user_permissions` 内部 `user_id == OWNER` 抛 `PermissionError` | fix/permission-security-hardening |
+| M9 | _migrations.applied_at 时间戳格式不一致 | `applied_at` 列去除 `DEFAULT datetime('now')`，INSERT 时显式传 `_now_iso()` | fix/permission-security-hardening |
+
+文档同步：[permission.md](design/permission.md) v1.1、[database.md](design/database.md) v0.2。
+测试新增：[tests/unit/test_permission_security_hardening.py](tests/unit/test_permission_security_hardening.py)（13 个用例，覆盖 M2/H1/M3/M9）。
 
 ---
 
