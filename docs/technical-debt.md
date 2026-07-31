@@ -583,6 +583,17 @@ Round 6 WebUI 开发启动。
 文档同步：[permission.md](design/permission.md) v1.1、[database.md](design/database.md) v0.2。
 测试新增：[tests/unit/test_permission_security_hardening.py](tests/unit/test_permission_security_hardening.py)（13 个用例，覆盖 M2/H1/M3/M9）。
 
+## Round 2: Dispatcher Reliability（2026-07-29）
+
+| 编号 | 标题 | 解决方式 | 提交 |
+|------|------|----------|------|
+| H3 | Dispatcher 修改 event.message | shortcut 展开用新 Message 对象替换 event.message，dispatch 结束在 finally 块恢复原始引用，避免污染后续 matcher | fix/dispatcher-reliability |
+| H5 | 缺少 Dispatcher 集成测试 | conftest.py 实现 MockBot/MockEvent fixture；新增 tests/integration/ 目录与 8 个集成测试覆盖黑名单拦截/权限拒绝/shortcut/私聊/冷却豁免 | fix/dispatcher-reliability |
+| M7 | dispatcher 多次权限查询优化 | 单次 get_level 替代 is_blacklisted + is_owner + check_permission 三次 SELECT，本地判断 blacklist/owner/required | fix/dispatcher-reliability |
+
+文档同步：[testing.md](developer/testing.md) fixture 模板已实现。
+测试新增：[tests/integration/test_dispatcher.py](tests/integration/test_dispatcher.py)（8 个用例，覆盖 H3/H5/M7）。
+
 ---
 
 # 10. 维护规则
