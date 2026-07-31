@@ -2,7 +2,7 @@
 
 > **状态：** 活跃
 > **版本：** v0.1
-> **最后更新：** 2026-07-29
+> **最后更新：** 2026-07-31
 > **来源：** Database Round 1-5 Code Review（2026-07-29）
 
 ---
@@ -229,44 +229,6 @@ Round 6 期间处理。
 
 **未来方向：**
 在 `setup()` 失败分支显式 `await self.close()`（清 `_conn`），保证重试安全。
-
----
-
-## M6 dispatcher 多次权限查询优化
-
-**当前问题：**
-[bot/plugins/command_dispatcher.py:118-141](file:///c:/AphrosyneData/CommunityOS/bot/plugins/command_dispatcher.py#L118-L141) 每条命中命令的消息触发 3 次 SELECT：
-1. `is_blacklisted(user_id, group_id)`
-2. `is_owner(user_id)`
-3. `check_permission(user_id, group_id, required)`
-
-加上 `_log_cmd` 的 INSERT，每条命令 4 次 DB 操作。指令是热路径，每次 await 都有上下文切换开销。
-
-**风险：**
-- 高频命令场景下 DB 成为瓶颈。
-- Round 6 WebUI 接入后并发查询放大问题。
-
-**未来方向：**
-dispatcher 直接调 `get_level` 一次，本地判断 blacklist/owner/required。
-
----
-
-## M7 audit log 重复代码抽取
-
-**当前问题：**
-`_log_mod` helper 在 3 个插件中完全重复定义：
-- [bot/plugins/mute.py:19-38](file:///c:/AphrosyneData/CommunityOS/bot/plugins/mute.py#L19-L38)
-- [bot/plugins/auto_recall.py:21-40](file:///c:/AphrosyneData/CommunityOS/bot/plugins/auto_recall.py#L21-L40)
-- [bot/plugins/admin.py:36-55](file:///c:/AphrosyneData/CommunityOS/bot/plugins/admin.py#L36-L55)
-
-dispatcher 中也有类似的 `_log_cmd`（[bot/plugins/command_dispatcher.py:30-47](file:///c:/AphrosyneData/CommunityOS/bot/plugins/command_dispatcher.py#L30-L47)）。
-
-**风险：**
-- 修一处忘另几处会产生不一致。
-- 未来加新的 audit 调用点需要重复实现。
-
-**未来方向：**
-抽取 `services/audit.py`，统一封装 `log_moderation` / `log_command` 的 try/except 模板。
 
 ---
 
@@ -589,10 +551,23 @@ Round 6 WebUI 开发启动。
 |------|------|----------|------|
 | H3 | Dispatcher 修改 event.message | shortcut 展开用新 Message 对象替换 event.message，dispatch 结束在 finally 块恢复原始引用，避免污染后续 matcher | fix/dispatcher-reliability |
 | H5 | 缺少 Dispatcher 集成测试 | conftest.py 实现 MockBot/MockEvent fixture；新增 tests/integration/ 目录与 8 个集成测试覆盖黑名单拦截/权限拒绝/shortcut/私聊/冷却豁免 | fix/dispatcher-reliability |
-| M7 | dispatcher 多次权限查询优化 | 单次 get_level 替代 is_blacklisted + is_owner + check_permission 三次 SELECT，本地判断 blacklist/owner/required | fix/dispatcher-reliability |
+| M6 | dispatcher 多次权限查询优化 | 单次 get_level 替代 is_blacklisted + is_owner + check_permission 三次 SELECT，本地判断 blacklist/owner/required | fix/dispatcher-reliability |
 
 文档同步：[testing.md](developer/testing.md) fixture 模板已实现。
-测试新增：[tests/integration/test_dispatcher.py](tests/integration/test_dispatcher.py)（8 个用例，覆盖 H3/H5/M7）。
+测试新增：[tests/integration/test_dispatcher.py](tests/integration/test_dispatcher.py)（8 个用例，覆盖 H3/H5/M6）。
+
+## Round 3: Audit Service Refactor（2026-07-31）
+
+| 编号 | 标题 | 解决方式 | 提交 |
+|------|------|----------|------|
+| TD1 / TD2 (M7) | audit log 重复代码抽取 | 新增 [bot/services/audit.py](file:///c:/AphrosyneData/CommunityOS/bot/services/audit.py) 统一封装 `log_moderation` / `log_command` 的 try/except 模板；mute / auto_recall / admin / command_dispatcher 4 处本地 helper 全部移除，改用 audit service | fix/audit-service-refactor |
+
+设计要点：
+- audit service 作为薄封装层，参数与 `database.log_moderation` / `database.log_command` 完全对齐（含默认值），仅做异常吞咽 + logger 记录。
+- 失败不向上抛出（Q4-A / Q1-A），调用方（插件）无需 try/except 包裹 audit 调用。
+- 保持分层架构：audit service 通过 `services.database` 模块级 API 写入，不直接持有连接。
+
+测试新增：[tests/unit/test_audit.py](tests/unit/test_audit.py)（7 个用例，覆盖委托透传 / 默认值 / 异常吞咽 / 调用方不阻塞）。
 
 ---
 

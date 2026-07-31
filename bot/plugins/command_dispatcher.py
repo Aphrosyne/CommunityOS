@@ -23,31 +23,11 @@ from services.permission import (
 )
 from services.shortcut import match as shortcut_match
 from services.message_rule import check_command
-from services import database
+from services.audit import log_command as _log_cmd
 from services.logger import get_logger
 
 logger = get_logger("command")
 _mod_log = get_logger("moderation")
-
-
-async def _log_cmd(
-    user_id: int,
-    group_id: int,
-    command_name: str,
-    raw_text: str | None,
-    result: str,
-) -> None:
-    """写入指令日志到 DB，失败仅记日志不抛出（Q1-A 额外要求）"""
-    try:
-        await database.log_command(
-            user_id=user_id,
-            group_id=group_id,
-            command_name=command_name,
-            raw_text=raw_text,
-            result=result,
-        )
-    except Exception:
-        logger.exception(f"DB 写入失败: command_log cmd={command_name} result={result}")
 
 # 冷却: {(user_id, group_id): {cooldown_level: last_time}}  # group_id=0 表示私聊
 _cooldowns: dict[tuple[int, int], dict[int, float]] = {}

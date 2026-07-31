@@ -7,7 +7,7 @@ from nonebot.adapters.onebot.v11 import Bot, MessageEvent
 from services.command import register, CooldownTier
 from services.message_rule import check_keywords, list_keywords
 from services.permission import Level, is_owner
-from services import database
+from services.audit import log_moderation as _log_mod
 from services import runtime_config
 from services.logger import get_logger
 
@@ -16,28 +16,6 @@ m_log = get_logger("moderation")
 # 每群每用户 5 秒冷却
 _recall_cd: dict[tuple[int, int], float] = {}
 RECALL_CD = 5
-
-
-async def _log_mod(
-    action: str,
-    user_id: int,
-    operator_id: int,
-    group_id: int,
-    reason: str | None = None,
-    details: dict | None = None,
-) -> None:
-    """写入审核日志到 DB，失败仅记日志不抛出（Q4-A）"""
-    try:
-        await database.log_moderation(
-            action=action,
-            user_id=user_id,
-            operator_id=operator_id,
-            group_id=group_id,
-            reason=reason,
-            details=details,
-        )
-    except Exception:
-        m_log.exception(f"DB 写入失败: moderation_log action={action}")
 
 
 async def handle_keywords(bot: Bot, event: MessageEvent):

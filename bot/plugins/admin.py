@@ -27,32 +27,11 @@ from nonebot.adapters.onebot.v11 import Bot, MessageEvent
 from services.command import register, CooldownTier
 from services import database
 from services.permission import Level, get_level, is_owner
+from services.audit import log_moderation as _log_mod
 from services.logger import get_logger
 
 logger = get_logger("command")
 m_log = get_logger("moderation")
-
-
-async def _log_mod(
-    action: str,
-    user_id: int,
-    operator_id: int,
-    group_id: int,
-    reason: str | None = None,
-    details: dict | None = None,
-) -> None:
-    """写入审核日志到 DB，失败仅记日志不抛出（Q4-A）"""
-    try:
-        await database.log_moderation(
-            action=action,
-            user_id=user_id,
-            operator_id=operator_id,
-            group_id=group_id,
-            reason=reason,
-            details=details,
-        )
-    except Exception:
-        m_log.exception(f"DB 写入失败: moderation_log action={action}")
 
 
 async def _resolve_target(event: MessageEvent) -> int | None:
