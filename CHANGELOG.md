@@ -7,6 +7,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/lang/zh-CN/
 
 ---
 
+## [Unreleased]
+
+来源：Database Round 1-5 Code Review 技术债修复（见 [docs/technical-debt.md](docs/technical-debt.md) §9）。
+
+### Added
+
+- **Round 3 — Audit Service**：新增 [bot/services/audit.py](bot/services/audit.py) 统一封装 `log_moderation()` / `log_command()` 写入，参数与 `database.log_moderation` / `database.log_command` 对齐（含默认值），异常吞咽不向上抛出（Q4-A / Q1-A）。新增 [tests/unit/test_audit.py](tests/unit/test_audit.py)（7 个用例覆盖委托透传 / 默认值 / 异常吞咽 / 调用方不阻塞）。
+- **Round 2 — Dispatcher 集成测试基础设施**：[tests/conftest.py](tests/conftest.py) 实现 `mock_bot` / `make_group_event` / `make_private_event` fixture（按 testing.md §3 模板）；新增 [tests/integration/](tests/integration/) 目录与 8 个 dispatcher 集成测试，覆盖黑名单拦截、权限拒绝、shortcut 不污染 event.message、shortcut 展开后 handler 可见、私聊 group_id=0、Owner 冷却豁免、黑名单不消耗冷却、单次 get_level 优化。
+
+### Changed
+
+- **Round 3 — 插件统一接入 audit service (TD1/TD2, M7)**：`mute.py` / `auto_recall.py` / `admin.py` 移除本地 `_log_mod` helper，`command_dispatcher.py` 移除本地 `_log_cmd` helper，全部改用 `services.audit.log_moderation` / `services.audit.log_command`。消除 4 处重复代码，统一异常处理策略。保持分层架构：audit service 通过 `services.database` 模块级 API 写入，不直接持有连接；Plugin 仍通过 `services.audit` 统一入口，不直接调 `database.log_*`。
+- **Round 2 — Dispatcher 事件消息修复 (H3)**：shortcut 展开改用新 `Message` 对象替换 `event.message`，dispatch 结束在 `finally` 块恢复原始引用，避免污染后续 priority 的 matcher 读到的内容。
+- **Round 2 — Dispatcher 权限查询优化 (M6)**：`command_dispatcher.py` 用单次 `get_level(user_id, group_id)` 替代 `is_blacklisted` + `is_owner` + `check_permission` 三次 SELECT，本地判断 blacklist/owner/required。
+
+### Fixed
+
+- **Round 1 — Owner 保护 defense-in-depth (H1)**：`database.set_permission()` 内部拒绝 `user_id == OWNER` 且 `level != 9` 的写操作（抛 `PermissionError`），与命令层显式检查形成双层保护。即使 DB 中 Owner 记录损坏或 `seed_from_env()` 异常，Owner 也无法被降级或拉黑。
+- **Round 1 — BotAdmin 同级权限保护 (H2)**：`admin.py _apply` 新增 `target_level >= operator_level`（operator 非 Owner）拒绝逻辑，`handle_perm` clear 子命令同步。防止 BotAdmin 互相降级/拉黑的横向越权。
+- **Round 1 — set_permission level 范围校验 (M2)**：`set_permission()` 开头校验 `level ∈ [-1, 9]`，超出抛 `ValueError`。新增常量 `LEVEL_MIN` / `LEVEL_MAX`。
+- **Round 1 — clear_user_permissions Owner 防护下沉 (M3)**：`clear_user_permissions()` 内部 `user_id == OWNER` 抛 `PermissionError`，与 H1 一致。
+- **Round 1 — 迁移时间戳格式统一 (M9)**：`_migrations.applied_at` 列去除 `DEFAULT datetime('now')`，INSERT 时显式传 `_now_iso()`（本地带时区 ISO 8601），与其他表时间戳格式一致。
+
+### Removed
+
+- **Round 3**：移除 `mute.py` / `auto_recall.py` / `admin.py` 中的 `_log_mod` 本地 helper（共 3 处重复定义），以及 `command_dispatcher.py` 中的 `_log_cmd` 本地 helper。
+
+### Fixed
+
+- **Round 4 — database.setup() 失败恢复 (M5)**：`DatabaseManager.setup()` 用 `try/except` 包裹 PRAGMA 配置 + 迁移执行，失败分支调新增的 `_safe_close()` 关闭并清空 `self._conn`，保证重试 setup 不会拿到"看似就绪但实际未迁移"的半升级连接。`_safe_close()` 吞咽 `close()` 异常避免掩盖原始失败原因。
+- **Round 4 — ADMINS/OWNER/BOT_QQ 环境变量解析友好报错 (L2)**：`config.py` 抽取 `_parse_int_env` / `_parse_int_list_env`，非法值抛带上下文（变量名 + 非法值）的 `ValueError`，替代裸 `int()` 抛出的无上下文异常。保持 fail-fast 语义（非法配置仍阻止启动）。
+
+### Changed
+
+- **Round 4 — database 域独立日志文件 (L1)**：`logger.py` 的 `_DOMAIN_FILES` 新增 `database` 项，`setup_logging()` 新增 `database.log` handler。`database.py` 现有的 `get_logger("database")` 自动路由到新文件，DB 异常不再混进 `bot.log`。
+- **Round 4 — 迁移命名规范与时间戳约束文档化 (L3/L4)**：`database.md` §5 新增"命名规范"小节（强制 3 位数字前缀 `NNN_描述.sql`，给出正反例）和"时间戳与 expires_at 比较约束"小节（明确 `expires_at` 必须用 `_now_iso()` 同款 ISO 8601 含时区格式）。
+
+### Added
+
+- **Round 4 — 审计日志索引 (L8)**：新增 [bot/migrations/002_add_audit_indexes.sql](bot/migrations/002_add_audit_indexes.sql) 创建 `idx_mod_log_action` / `idx_cmd_log_command_name`，支持按 `moderation_log.action` / `command_log.command_name` 筛选查询。`IF NOT EXISTS` 保证幂等。
+- **Round 4 测试**：`tests/unit/test_database.py` 增加 3 个 M5 用例（迁移失败/PRAGMA 失败清理 `_conn`、`_safe_close` 吞咽异常）；新增 `tests/unit/test_config_env_parsing.py`（7 个 L2 用例）；`tests/unit/test_migration.py` 更新 `EXPECTED_INDEXES` 集合并断言 002 迁移已记录。
+
+---
+
 ## [1.2.0] - 2026-07-29
 
 ### Added

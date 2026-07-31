@@ -2,12 +2,14 @@
 Logger Service — 按领域分日志文件
 
 日志文件：
-    logs/bot.log   — 系统、指令、其他
-    logs/image.log — 图片业务（publish / obfuscate / decode）
+    logs/bot.log       — 系统、指令、其他
+    logs/image.log     — 图片业务（publish / obfuscate / decode）
+    logs/database.log  — 数据库连接、迁移、Repository 写入异常
 
 用法：
     from services.logger import get_logger
     logger = get_logger("image")   # → image.log
+    logger = get_logger("database") # → database.log
     logger = get_logger("bot")     # → bot.log
     logger = get_logger(__name__)  # → bot.log（默认）
 """
@@ -21,12 +23,14 @@ LOG_FORMAT = "[%(asctime)s] [%(levelname)s] [%(name)s] %(message)s"
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 
 # 域名 → 日志文件名
+# L1: database 域独立文件，避免 DB 异常混进 bot.log 难以定位
 _DOMAIN_FILES: dict[str, str] = {
     "image": "image.log",
     "command": "command.log",
     "relationship": "relationship.log",
     "member": "member.log",
     "moderation": "moderation.log",
+    "database": "database.log",
 }
 
 _initialized = False
@@ -67,6 +71,9 @@ def setup_logging() -> None:
 
     # moderation.log（仅 moderation 域）
     _add_file_handler("moderation", "moderation.log")
+
+    # database.log（仅 database 域，L1）
+    _add_file_handler("database", "database.log")
 
     # 抑制第三方噪音
     logging.getLogger("nonebot").setLevel(logging.WARNING)

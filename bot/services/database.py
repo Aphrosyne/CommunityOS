@@ -73,6 +73,10 @@ class DatabaseManager:
 
         幂等：重复调用不会重复建表。
         失败策略：fail-fast，异常向上传播（数据库是核心依赖，起不来不如不起）。
+
+        M5: 任何阶段失败（PRAGMA / 迁移）都通过 finally 清理 _conn，
+        保证 self._conn 要么是已就绪的连接，要么为 None，
+        重试 setup() 不会拿到"看似就绪但实际未迁移"的半升级连接。
         """
         if self._conn is not None:
             return
@@ -80,14 +84,29 @@ class DatabaseManager:
         logger.info(f"正在打开数据库: {self._db_path}")
         self._conn = await aiosqlite.connect(self._db_path)
 
-        # PRAGMA 配置
-        await self._conn.execute("PRAGMA foreign_keys = ON")
-        await self._conn.execute("PRAGMA journal_mode = WAL")
-        await self._conn.execute("PRAGMA busy_timeout = 5000")
-        await self._conn.commit()
+        try:
+            # PRAGMA 配置
+            await self._conn.execute("PRAGMA foreign_keys = ON")
+            await self._conn.execute("PRAGMA journal_mode = WAL")
+            await self._conn.execute("PRAGMA busy_timeout = 5000")
+            await self._conn.commit()
 
-        await self._run_migrations()
+            await self._run_migrations()
+        except Exception:
+            # M5: 失败时关闭并清空 _conn，避免半升级状态残留
+            # （PRAGMA 可能未设、迁移可能半应用，连接处于未知状态）
+            await self._safe_close()
+            raise
         logger.info("数据库已就绪")
+
+    async def _safe_close(self) -> None:
+        """关闭连接并清空 _conn，吞咽关闭异常（用于 setup 失败清理）"""
+        if self._conn is not None:
+            try:
+                await self._conn.close()
+            except Exception:
+                logger.warning("清理失败连接时 close() 抛异常", exc_info=True)
+            self._conn = None
 
     async def _run_migrations(self) -> None:
         """执行未应用的迁移脚本"""

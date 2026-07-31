@@ -27,16 +27,49 @@ BACKUP_DIR.mkdir(parents=True, exist_ok=True)
 DEBUG = os.getenv("DEBUG", "false").lower() == "true"
 DEBUG_NONEBOT = os.getenv("DEBUG_NONEBOT", "false").lower() == "true"
 
+
+def _parse_int_env(key: str, default: int) -> int:
+    """解析整型环境变量，非法值时抛 ValueError 并附带可读提示（L2）"""
+    raw = os.getenv(key)
+    if raw is None or raw.strip() == "":
+        return default
+    try:
+        return int(raw.strip())
+    except ValueError:
+        raise ValueError(
+            f"环境变量 {key} 非法: {raw!r}（应为整数 QQ 号）"
+        ) from None
+
+
+def _parse_int_list_env(key: str) -> list[int]:
+    """解析逗号分隔整型列表，非法值时抛 ValueError 并附带可读提示（L2）"""
+    raw = os.getenv(key, "")
+    result: list[int] = []
+    for x in raw.split(","):
+        x = x.strip()
+        if not x:
+            continue
+        try:
+            result.append(int(x))
+        except ValueError:
+            raise ValueError(
+                f"环境变量 {key} 含非法值: {x!r}（应为整数 QQ 号）"
+            ) from None
+    return result
+
+
 # 权限（Bot Admin，非 QQ 群管理员）
-OWNER = int(os.getenv("OWNER", "0"))
-ADMINS: list[int] = [int(x.strip()) for x in os.getenv("ADMINS", "").split(",") if x.strip()]
+# L2: OWNER / ADMINS / BOT_QQ 解析失败时抛带上下文的 ValueError，
+# 避免裸 ValueError 导致 bot 启动失败且排查困难
+OWNER = _parse_int_env("OWNER", 0)
+ADMINS: list[int] = _parse_int_list_env("ADMINS")
 
 # NoneBot2 超级用户（与 Bot Admin 无关）
 import json  # noqa: E402
 SUPERUSERS: list[str] = json.loads(os.getenv("SUPERUSERS", "[]"))
 
 # 机器人 QQ
-BOT_QQ = int(os.getenv("BOT_QQ", "0"))
+BOT_QQ = _parse_int_env("BOT_QQ", 0)
 
 # 被 @ 时的回复内容（已迁移至 runtime.json，见 services/runtime_config.py）
 

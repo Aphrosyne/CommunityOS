@@ -208,13 +208,31 @@ WHERE gm.group_id = ?
 
 ```text
 bot/migrations/
-├── 001_create_tables.sql  # 建全部 5 张表 + 索引
-└── 002_xxx.sql            # 后续变更
+├── 001_create_tables.sql          # 建全部 5 张表 + 索引
+├── 002_add_audit_indexes.sql      # 审计日志按 action / command_name 查询索引
+└── 003_xxx.sql                    # 后续变更
 ```
+
+## 命名规范（L3）
+
+**迁移文件名必须使用 3 位数字前缀**（`NNN_描述.sql`），因为 `_run_migrations` 按 `f.name` 字典序排序执行。零填充保证 `002_` 在 `010_` 之前、`010_` 在 `100_` 之前。无前缀或非零填充（如 `10_xxx.sql`）会导致执行顺序错乱。
+
+示例：
+- ✅ `001_create_tables.sql`
+- ✅ `002_add_audit_indexes.sql`
+- ❌ `10_xxx.sql`（会被排到 `002_` 之前）
+- ❌ `xxx.sql`（无序号前缀，字典序不可预期）
 
 ## 执行
 
 启动时自动检查并执行未应用的迁移，跟踪记录在 `data/migration_state` 或数据库内 `_migrations` 表中。
+
+## 时间戳与 `expires_at` 比较约束（L4）
+
+- 所有时间戳列（`first_seen` / `last_updated` / `applied_at` / `timestamp` / `expires_at` 等）统一使用 Python 端 `_now_iso()` 注入的 ISO 8601 含本地时区偏移格式（如 `2026-07-31T15:30:00+08:00`），见 M9。
+- `get_permission` 的 `expires_at > ?` 字符串比较依赖 `expires_at` 与查询时传入的 `_now_iso()` 使用**相同的时区偏移**。当前实现两者都来自 `_now_iso()`，时区一致，比较安全。
+- **约束**：调用 `set_permission` 传 `expires_at` 时，必须使用 `_now_iso()` 同款格式（含时区偏移的 ISO 8601）。传入 UTC 无时区或不同时区偏移会导致比较结果错误。
+- 未来若引入跨时区客户端（WebUI），应在 Service 层统一归一化为 UTC 或统一时区后再写入。
 
 ## 首次部署
 

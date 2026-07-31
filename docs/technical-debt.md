@@ -176,32 +176,6 @@ Round 6 期间处理。
 
 ---
 
-## M2 set_permission 缺少 level 范围校验
-
-**当前问题：**
-[bot/services/database.py:239-281](file:///c:/AphrosyneData/CommunityOS/bot/services/database.py#L239-L281) docstring 写"level 值域: -1(黑名单) ~ 9(Owner)"，但函数体不校验。当前调用方都用 `Level.*` 常量，但 `database.set_permission` 是模块级公开 API，任何未来插件（或 WebUI）可以直接传 `level=99` 或 `level=-5`。
-
-**风险：**
-- 未来 WebUI 或新插件可能传非法 level 值，破坏权限模型。
-
-**未来方向：**
-在 `set_permission` 开头加值域校验，非法值抛 `ValueError`。
-
----
-
-## M3 clear_user_permissions Owner 防护下沉数据库层
-
-**当前问题：**
-[bot/services/database.py:335-347](file:///c:/AphrosyneData/CommunityOS/bot/services/database.py#L335-L347) `clear_user_permissions` 函数本身不检查 Owner，docstring 说"调用方应先做 Owner 保护检查"。但它是模块级公开 API，下一个调用者（WebUI）很容易忘记做这个检查。
-
-**风险：**
-- WebUI 接入后若直接调 `clear_user_permissions` 而未做 Owner 检查，可清空 Owner 权限。
-
-**未来方向：**
-在 `clear_user_permissions` 内部拒绝 `user_id == OWNER`，与 H1 修复一致（defense-in-depth）。
-
----
-
 ## M4 seed_from_env 权限种子行为需要明确
 
 **当前问题：**
@@ -227,8 +201,7 @@ Round 6 期间处理。
 - 本地调试时若 try/except 包住 `database.setup()` 重试，会得到"看似就绪但实际未迁移"的连接。
 - 半升级状态比不升级更危险。
 
-**未来方向：**
-在 `setup()` 失败分支显式 `await self.close()`（清 `_conn`），保证重试安全。
+**当前状态：** 已在 Round 4 修复（见 §9）。
 
 ---
 
@@ -255,8 +228,7 @@ Round 6 期间处理。
 - 未来按迁移时间筛选会踩坑。
 - 破坏"统一时间戳格式"原则。
 
-**未来方向：**
-`applied_at` 改用 Python 端 `_now_iso()` 注入。
+**当前状态：** 已在 Round 1 修复（见 §9）。
 
 ---
 
@@ -336,7 +308,7 @@ project_memory 已记录"Admin commands use English aliases: sba (botadmin), sga
 
 [bot/services/database.py:36](file:///c:/AphrosyneData/CommunityOS/bot/services/database.py#L36) `get_logger("database")`，但 [bot/services/logger.py:24-30](file:///c:/AphrosyneData/CommunityOS/bot/services/logger.py#L24-L30) 的 `_DOMAIN_FILES` 没有 "database" 项，DB 异常混进 bot.log。
 
-**未来方向：** 加 `database.log` 或文档说明现状。
+**当前状态：** 已在 Round 4 修复（见 §9）。
 
 ---
 
@@ -344,7 +316,7 @@ project_memory 已记录"Admin commands use English aliases: sba (botadmin), sga
 
 [bot/services/config.py:32](file:///c:/AphrosyneData/CommunityOS/bot/services/config.py#L32) `int(x.strip())` 对 `"abc"` 抛 ValueError，模块加载失败 → bot 起不来。
 
-**未来方向：** 加 try/except，提供友好报错。
+**当前状态：** 已在 Round 4 修复（见 §9）。
 
 ---
 
@@ -352,7 +324,7 @@ project_memory 已记录"Admin commands use English aliases: sba (botadmin), sga
 
 [bot/services/database.py:105-109](file:///c:/AphrosyneData/CommunityOS/bot/services/database.py#L105-L109) `sorted(key=lambda f: f.name)` 字典序。
 
-**未来方向：** 文档化命名规范（3 位数字前缀）。
+**当前状态：** 已在 Round 4 文档化（见 §9，database.md §5 命名规范）。
 
 ---
 
@@ -360,7 +332,7 @@ project_memory 已记录"Admin commands use English aliases: sba (botadmin), sga
 
 `get_permission` 的 `expires_at > ?` 比较依赖 `expires_at` 与 `_now_iso()` 用相同时区偏移。
 
-**未来方向：** `set_permission` 校验 `expires_at` 格式或在文档里明确约束。
+**当前状态：** 已在 Round 4 文档化（见 §9，database.md §5 时间戳约束）。
 
 ---
 
@@ -392,7 +364,7 @@ project_memory 已记录"Admin commands use English aliases: sba (botadmin), sga
 
 `action` / `command_name` 无索引，按字段查询是全表扫描。
 
-**未来方向：** Round 6 WebUI 接入前加 `idx_mod_log_action` / `idx_cmd_log_command_name`。
+**当前状态：** 已在 Round 4 修复（见 §9，新增迁移 002）。
 
 ---
 
@@ -568,6 +540,32 @@ Round 6 WebUI 开发启动。
 - 保持分层架构：audit service 通过 `services.database` 模块级 API 写入，不直接持有连接。
 
 测试新增：[tests/unit/test_audit.py](tests/unit/test_audit.py)（7 个用例，覆盖委托透传 / 默认值 / 异常吞咽 / 调用方不阻塞）。
+
+## Round 4: Database Robustness（2026-07-31）
+
+| 编号 | 标题 | 解决方式 | 提交 |
+|------|------|----------|------|
+| M5 | database.setup() 失败恢复 | `setup()` 用 try/except 包裹 PRAGMA + 迁移，失败分支调 `_safe_close()` 关闭并清空 `_conn`，重试时不会拿到半升级连接 | fix/database-robustness |
+| M6 | dispatcher 多次权限查询优化（标签修正） | Round 2 已修复，本 Round 仅修正 §4 残留条目与 §9 Round 2 表格的标签错误（原误标 M7） | — |
+| L1 | database logger 落到 bot.log | `logger.py` `_DOMAIN_FILES` 加 `database` 项，`setup_logging()` 新增 `database.log` handler，DB 异常独立落盘 | fix/database-robustness |
+| L2 | ADMINS env 解析无 try/except | `config.py` 抽取 `_parse_int_env` / `_parse_int_list_env`，OWNER/ADMINS/BOT_QQ 解析失败抛带上下文（变量名+非法值）的 `ValueError` | fix/database-robustness |
+| L3 | Migration 文件名排序依赖零填充 | [database.md](design/database.md) §5 新增"命名规范"小节，强制 3 位数字前缀（`NNN_描述.sql`）并给出正反例 | fix/database-robustness |
+| L4 | expires_at 字符串比较时区假设未文档化 | [database.md](design/database.md) §5 新增"时间戳与 expires_at 比较约束"小节，明确 `expires_at` 必须用 `_now_iso()` 同款格式 | fix/database-robustness |
+| L8 | command_log / moderation_log 缺索引 | 新增 [bot/migrations/002_add_audit_indexes.sql](file:///c:/AphrosyneData/CommunityOS/bot/migrations/002_add_audit_indexes.sql) 创建 `idx_mod_log_action` / `idx_cmd_log_command_name`，IF NOT EXISTS 保证幂等 | fix/database-robustness |
+
+设计要点：
+- M5 使用新增的 `_safe_close()` 而非直接 `close()`，吞咽关闭异常避免掩盖原始失败原因。
+- L1 不改 `database.py` 调用方代码，仅扩展 logger 配置；现有 `get_logger("database")` 自动路由到新文件。
+- L2 保持 fail-fast 语义（非法配置仍阻止启动），仅把裸 `ValueError` 升级为带上下文提示。
+- L8 索引按 action / command_name 维度，已有的 idx_mod_log_user_time / idx_cmd_log_user_time 保持不变，本迁移只补充筛选维度。
+
+未做（评估后排除出 Round 4 范围）：
+- L5（default=str 可接受现状）、L11（UPSERT 合并 Low 无并发问题）、L12（测试 sleep 非数据库鲁棒性）、L14（cooldown TTL 非数据库）。
+
+测试新增：
+- [tests/unit/test_database.py](tests/unit/test_database.py) 增加 M5 用例：setup 失败后 `_conn` 为 None、重试可成功、`_safe_close` 吞咽关闭异常。
+- [tests/unit/test_config_env_parsing.py](tests/unit/test_config_env_parsing.py) 新增 L2 用例：合法/空 ADMINS、非法 ADMINS 报错、OWNER/BOT_QQ 边界。
+- [tests/unit/test_migration.py](tests/unit/test_migration.py) 增加 L8 用例：002 迁移后索引存在。
 
 ---
 

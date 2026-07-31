@@ -87,3 +87,89 @@ async def test_foreign_key_enforced(db):
             "VALUES (999999, 123, 'active')"
         )
         await conn.commit()
+
+
+# ── M5: setup() 失败恢复 ────────────────────────────────────────
+
+
+async def test_setup_failure_clears_connection(tmp_db_path, monkeypatch):
+    """M5: setup 失败后 _conn 被清空，不会残留半升级连接
+
+    场景：迁移阶段抛异常，self._conn 已赋值但状态未知。
+    修复前：_conn 残留，重试 setup 直接 return，跳过迁移。
+    修复后：失败分支调 _safe_close() 清空 _conn，重试安全。
+    """
+    mgr = DatabaseManager(db_path=tmp_db_path)
+
+    original_run_migrations = mgr._run_migrations
+
+    async def boom(*args, **kwargs):
+        raise RuntimeError("migration failed")
+
+    monkeypatch.setattr(mgr, "_run_migrations", boom)
+
+    with pytest.raises(RuntimeError, match="migration failed"):
+        await mgr.setup()
+
+    # M5 关键断言：失败后 _conn 必须为 None
+    assert mgr._conn is None
+
+    # 重试 setup 可成功（_run_migrations 恢复原实现）
+    monkeypatch.setattr(mgr, "_run_migrations", original_run_migrations)
+    await mgr.setup()
+    conn = await mgr.get_connection()
+    async with conn.execute("SELECT 1") as cur:
+        row = await cur.fetchone()
+    assert row[0] == 1
+    await mgr.close()
+
+
+async def test_setup_failure_during_pragma_clears_connection(tmp_db_path, monkeypatch):
+    """M5: PRAGMA 阶段失败也清空 _conn"""
+    mgr = DatabaseManager(db_path=tmp_db_path)
+
+    # 让 PRAGMA 执行抛异常
+    original_connect = aiosqlite.connect
+
+    async def fake_connect(path):
+        conn = await original_connect(path)
+        # 第一次 execute（PRAGMA foreign_keys）抛异常
+        original_execute = conn.execute
+
+        call_count = {"n": 0}
+
+        async def boom_execute(*args, **kwargs):
+            call_count["n"] += 1
+            if call_count["n"] == 1:
+                raise RuntimeError("PRAGMA failed")
+            return await original_execute(*args, **kwargs)
+
+        conn.execute = boom_execute
+        return conn
+
+    monkeypatch.setattr(aiosqlite, "connect", fake_connect)
+
+    with pytest.raises(RuntimeError, match="PRAGMA failed"):
+        await mgr.setup()
+
+    assert mgr._conn is None
+
+
+async def test_safe_close_swallows_close_exception(tmp_db_path):
+    """M5: _safe_close 吞咽 close() 异常，仍清空 _conn"""
+    mgr = DatabaseManager(db_path=tmp_db_path)
+    await mgr.setup()
+
+    # 让 conn.close() 抛异常
+    conn = mgr._conn
+    original_close = conn.close
+
+    async def boom_close():
+        raise RuntimeError("close failed")
+
+    conn.close = boom_close
+
+    # 不应抛出
+    await mgr._safe_close()
+    assert mgr._conn is None
+

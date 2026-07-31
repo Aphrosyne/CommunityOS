@@ -1,6 +1,7 @@
 """迁移脚本测试
 
 验证 001_create_tables.sql 建表结果与 docs/design/database.md §3.2 一致。
+验证 002_add_audit_indexes.sql 索引创建（L8）。
 """
 EXPECTED_TABLES = {
     "users",
@@ -18,6 +19,9 @@ EXPECTED_INDEXES = {
     "idx_permissions_expires",
     "idx_mod_log_user_time",
     "idx_cmd_log_user_time",
+    # 002_add_audit_indexes.sql（L8）
+    "idx_mod_log_action",
+    "idx_cmd_log_command_name",
 }
 
 
@@ -113,11 +117,13 @@ async def test_user_permissions_group_id_default_zero(db):
 
 
 async def test_migration_recorded(db):
-    """_migrations 表记录了 001_create_tables.sql"""
+    """_migrations 表记录了 001_create_tables.sql 与 002_add_audit_indexes.sql"""
     conn = await db.get_connection()
     async with conn.execute("SELECT name FROM _migrations") as cur:
         rows = await cur.fetchall()
-    assert ("001_create_tables.sql",) in rows
+    names = {row[0] for row in rows}
+    assert "001_create_tables.sql" in names
+    assert "002_add_audit_indexes.sql" in names
 
 
 async def test_setup_idempotent_across_managers(tmp_db_path):
@@ -133,5 +139,5 @@ async def test_setup_idempotent_across_managers(tmp_db_path):
     conn = await mgr2.get_connection()
     async with conn.execute("SELECT COUNT(*) FROM _migrations") as cur:
         row = await cur.fetchone()
-    assert row[0] == 1
+    assert row[0] == 2  # 001 + 002
     await mgr2.close()
