@@ -1,7 +1,7 @@
 # Technical Debt 技术债追踪
 
 > **状态：** 活跃
-> **版本：** v0.1
+> **版本：** v0.2
 > **最后更新：** 2026-07-31
 > **来源：** Database Round 1-5 Code Review（2026-07-29）
 
@@ -255,8 +255,7 @@ permission.md §11 "当前版本不包含：黑名单、白名单、群级角色
 - 新协作者基于错误文档理解权限模型。
 - 安全审查者无法对照文档判断实现是否合规。
 
-**未来方向：**
-permission.md 升级到 v1.1+，反映 9 级权限模型，更新"当前版本范围"和"后续规划"。
+**当前状态：** 已在 Round 1 修复（permission.md v1.1，见 §9），Round 5 确认同步。
 
 ---
 
@@ -279,6 +278,8 @@ permission.md 升级到 v1.1+，反映 9 级权限模型，更新"当前版本�
 - 创建 tests/integration/ 目录。
 - 与 H5 修复同步进行。
 
+**当前状态：** 已在 Round 2 修复（conftest.py 实现 mock_bot / make_group_event / make_private_event，tests/integration/ 目录已创建，见 §9），Round 5 确认同步。
+
 ---
 
 ## D3 roadmap / command-system 命令名称变更未记录
@@ -297,6 +298,8 @@ project_memory 已记录"Admin commands use English aliases: sba (botadmin), sga
 **未来方向：**
 - database-roadmap.md Round 3 段落更新命令名。
 - command-system.md §11 已实现命令列表同步实际名称与别名。
+
+**当前状态：** 已在 Round 5 修复（见 §9）。
 
 ---
 
@@ -566,6 +569,19 @@ Round 6 WebUI 开发启动。
 - [tests/unit/test_database.py](tests/unit/test_database.py) 增加 M5 用例：setup 失败后 `_conn` 为 None、重试可成功、`_safe_close` 吞咽关闭异常。
 - [tests/unit/test_config_env_parsing.py](tests/unit/test_config_env_parsing.py) 新增 L2 用例：合法/空 ADMINS、非法 ADMINS 报错、OWNER/BOT_QQ 边界。
 - [tests/unit/test_migration.py](tests/unit/test_migration.py) 增加 L8 用例：002 迁移后索引存在。
+
+## Round 5: Documentation Synchronization（2026-07-31）
+
+| 编号 | 标题 | 解决方式 | 提交 |
+|------|------|----------|------|
+| D1 | permission.md 落后于实现 | permission.md 已在 Round 1 升级到 v1.1（9 级权限模型 + defense-in-depth），Round 5 确认同步无遗漏 | fix/documentation-sync |
+| D2 | testing.md 承诺的 fixture 与目录未落地 | conftest.py 已在 Round 2 实现 mock_bot / make_group_event / make_private_event（按 testing.md §3 模板），tests/integration/ 目录已创建，Round 5 确认同步 | fix/documentation-sync |
+| D3 | roadmap / command-system 命令名称变更未记录 | [database-roadmap.md](design/database-roadmap.md) v0.3 Round 3 段落更新命令名（/admin→/botadmin 等）、函数名（grant_permission→set_permission）；[command-system.md](design/command-system.md) v1.2 §11 新增管理命令表格（含别名 sba/sga/swl/sbl/spm 与权限要求），冷却术语 Admin→BotAdmin 对齐 9 级模型 | fix/documentation-sync |
+
+设计要点：
+- D1/D2 属于"文档债在早期 Round 已实际解决但未在 technical-debt.md 标记"的情况，Round 5 做确认性同步。
+- D3 是实质性文档更新：database-roadmap.md 修正历史 Round 3 的命令名/函数名，command-system.md 补全管理命令清单。
+- 不涉及代码变更，仅文档同步。
 
 ---
 

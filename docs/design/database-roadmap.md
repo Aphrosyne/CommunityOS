@@ -1,8 +1,8 @@
 # Database Roadmap 数据库实施路线
 
 > **状态：** Round 1-5 已完成，Round 6 暂缓
-> **版本：** v0.2
-> **最后更新：** 2026-07-29
+> **版本：** v0.3
+> **最后更新：** 2026-07-31
 
 ---
 
@@ -73,10 +73,15 @@
 **实现：**
 
 - 启动时 `.env` 中的 `OWNER=` 作为种子写入 `user_permissions`（level=9）
-- `database.py` 新增：`get_permission(user_id, group_id) → int`、`grant_permission(...)`、`revoke_permission(...)`
+- `database.py` 新增：`get_permission(user_id, group_id) → int`、`set_permission(...)`、`clear_user_permissions(...)`
 - `services/permission.py` 重写：从数据库读权限替代读 `.env`
 - `plugins/command_dispatcher.py` 接口适配：调用 `check()` 时多传 `group_id`
-- 新增命令：`/admin add @user`、`/admin remove @user`、`/blacklist add @user`、`/blacklist remove @user`（Admin+ 可执行）
+- 新增命令（英文别名见 [command-system.md §11](command-system.md)）：
+  - `/botadmin add|remove @user`（别名 `sba`，Owner 专用）
+  - `/groupadmin add|remove @user`（别名 `sga`，BotAdmin+，群级）
+  - `/whitelist add|remove @user`（别名 `swl`，BotAdmin+）
+  - `/blacklist add|remove @user`（别名 `sbl`，BotAdmin+）
+  - `/perm @user [clear|in <群号>]`（别名 `spm`，BotAdmin+）
 
 **pytest：**
 

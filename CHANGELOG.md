@@ -49,6 +49,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/lang/zh-CN/
 - **Round 4 — 审计日志索引 (L8)**：新增 [bot/migrations/002_add_audit_indexes.sql](bot/migrations/002_add_audit_indexes.sql) 创建 `idx_mod_log_action` / `idx_cmd_log_command_name`，支持按 `moderation_log.action` / `command_log.command_name` 筛选查询。`IF NOT EXISTS` 保证幂等。
 - **Round 4 测试**：`tests/unit/test_database.py` 增加 3 个 M5 用例（迁移失败/PRAGMA 失败清理 `_conn`、`_safe_close` 吞咽异常）；新增 `tests/unit/test_config_env_parsing.py`（7 个 L2 用例）；`tests/unit/test_migration.py` 更新 `EXPECTED_INDEXES` 集合并断言 002 迁移已记录。
 
+### Changed
+
+- **Round 5 — Documentation Synchronization (D1/D2/D3)**：文档与实现同步，无代码变更。
+  - **D1**：[permission.md](docs/design/permission.md) 已在 Round 1 升级到 v1.1（9 级权限模型 + defense-in-depth H1/H2/M2/M3），Round 5 确认同步无遗漏。
+  - **D2**：[testing.md](docs/developer/testing.md) §3 承诺的 `mock_bot` / `make_group_event` / `make_private_event` fixture 已在 Round 2 于 [conftest.py](tests/conftest.py) 落地，`tests/integration/` 目录已创建，Round 5 确认同步。
+  - **D3**：[database-roadmap.md](docs/design/database-roadmap.md) v0.3 Round 3 段落更新命令名（`/admin add`→`/botadmin add` 等）与函数名（`grant_permission`→`set_permission`、`revoke_permission`→`clear_user_permissions`），补全 5 个管理命令及其英文别名（sba/sga/swl/sbl/spm）；[command-system.md](docs/design/command-system.md) v1.2 §11 新增管理命令表格（含别名、最低权限、作用域），冷却术语 `Admin`→`BotAdmin` 对齐 9 级权限模型。
+
 ---
 
 ## [1.2.0] - 2026-07-29

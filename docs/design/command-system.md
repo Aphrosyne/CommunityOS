@@ -1,8 +1,15 @@
 # 指令系统 Command System
 
 > **状态：** 正式
-> **版本：** v1.1
-> **最后更新：** 2026-07-03
+> **版本：** v1.2
+> **最后更新：** 2026-07-31
+
+---
+
+## 变更记录
+
+- **v1.2 (2026-07-31):** 同步管理命令与英文别名（sba/sga/swl/sbl/spm）；冷却/权限表格术语 Admin → BotAdmin 对齐 9 级权限模型。
+- **v1.1 (2026-07-03):** 初始版本。
 
 ---
 
@@ -79,7 +86,7 @@ COMMAND_COOLDOWN_L1=5
 COMMAND_COOLDOWN_L2=10
 ```
 
-**Owner 冷却豁免**：Owner 不受指令冷却限制，用于测试和紧急处理。Admin 和 User 正常走冷却。
+**Owner 冷却豁免**：Owner 不受指令冷却限制，用于测试和紧急处理。BotAdmin 和 User 正常走冷却。
 
 ---
 
@@ -236,7 +243,7 @@ register("status", handle_status, description="查看系统运行状态")
 
 ---
 
-## 11. 已实现（v1.1）
+## 11. 已实现（v1.2）
 
 | 组件 | 文件 |
 |------|------|
@@ -247,6 +254,19 @@ register("status", handle_status, description="查看系统运行状态")
 | 权限服务 | `services/permission.py` |
 | 指令快捷映射 | `services/shortcut.py` + `bot/config/shortcuts.json` |
 
+管理命令（v1.2 引入，详见 [permission.md](permission.md)）：
+
+| 命令 | 别名 | 最低权限 | 作用域 | 说明 |
+|------|------|----------|--------|------|
+| `/botadmin add\|remove @user` | `sba` | Owner | 全局 | 全局 BotAdmin（level=3）管理 |
+| `/groupadmin add\|remove @user` | `sga` | BotAdmin | 群级 | 群级 GroupAdmin（level=2）管理，仅当前群 |
+| `/whitelist add\|remove @user` | `swl` | BotAdmin | 全局 | 白名单（level=1）管理 |
+| `/blacklist add\|remove @user` | `sbl` | BotAdmin | 全局 | 黑名单（level=-1）管理 |
+| `/perm @user [clear\|in <群号>]` | `spm` | BotAdmin | — | 权限查询；`clear` 清除（Owner 保护）；`in` 查群级有效权限 |
+
+> **同级保护（H2）：** 非 Owner 操作者不可影响权限等级 ≥ 自身的用户。
+> **Owner 保护（H1/M3）：** Owner 不可被降级或拉黑（命令层 + DB 层双层强制）。
+
 配置项：
 
 ```ini
@@ -254,7 +274,8 @@ COMMAND_COOLDOWN_L0=3     # 查询类冷却（秒）
 COMMAND_COOLDOWN_L1=5     # 会话启动类冷却（秒）
 COMMAND_COOLDOWN_L2=10    # 管理类冷却（秒）
 OWNER=0                   # 机器人所有者
-ADMINS=                   # Bot 管理员
+ADMINS=                   # Bot 管理员（种子写入）
+BOT_QQ=0                  # 机器人自身 QQ 号
 ```
 
 特性：无指令前缀、命令别名、首词匹配、按等级冷却、权限检查、Owner 冷却豁免。
